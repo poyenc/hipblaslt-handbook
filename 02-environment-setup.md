@@ -181,6 +181,12 @@ The build output goes to `build/release/` (or `build/debug/` for debug builds, `
 
 ### Method 2: CMake presets
 
+> **Python dependencies required:** All build methods (not just invoke) run TensileLite Python during the build. If you haven't already, set up the venv first:
+> ```bash
+> python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+> ```
+> Then pass `-DPython_EXECUTABLE=$(pwd)/.venv/bin/python -DPython3_EXECUTABLE=$(pwd)/.venv/bin/python` to CMake, or ensure the venv is activated when running `cmake`.
+
 CMake presets provide named configurations defined in `CMakePresets.json`. They set compiler paths, install prefix, and component toggles automatically.
 
 **Available presets:**
