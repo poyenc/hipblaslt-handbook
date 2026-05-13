@@ -92,7 +92,7 @@ Supported Linux distros (from `tasks.py` `_supported_distros()`): Ubuntu, CentOS
 
 ## Cloning the Repo [Essentials]
 
-hipBLASLt lives inside the `rocm-libraries` monorepo. You can clone the full repo or use sparse checkout to download only hipBLASLt.
+hipBLASLt lives inside the `rocm-libraries` monorepo at `projects/hipblaslt/`. Its build also references sibling directories under `shared/` (see the [monorepo source dependencies](#monorepo-source-dependencies-containers--sparse-checkout) table above).
 
 ### Full clone
 
@@ -101,14 +101,22 @@ git clone https://github.com/ROCm/rocm-libraries.git
 cd rocm-libraries/projects/hipblaslt
 ```
 
-### Sparse checkout (faster)
+### Sparse checkout (recommended)
+
+Only downloads hipBLASLt and its required shared dependencies:
 
 ```bash
 git clone --no-checkout --filter=blob:none https://github.com/ROCm/rocm-libraries.git
 cd rocm-libraries
 git sparse-checkout init --cone
-git sparse-checkout set projects/hipblaslt
-git checkout develop # or the branch you are starting from
+git sparse-checkout set projects/hipblaslt shared/origami shared/stinkytofu shared/mxdatagenerator shared/rocroller
+git checkout develop  # or the branch you are starting from
+```
+
+If you don't need RocRoller JIT or MX data generation, you can omit those folders and disable them at configure time:
+
+```bash
+git sparse-checkout set projects/hipblaslt shared/origami shared/stinkytofu
 ```
 
 After either method, all build commands run from `projects/hipblaslt`.
