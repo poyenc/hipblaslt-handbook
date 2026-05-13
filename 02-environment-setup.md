@@ -34,6 +34,7 @@ An AMD GPU supported by hipBLASLt. The supported architectures are defined in `c
 Install all non-ROCm dependencies at once (Ubuntu/Debian):
 
 ```bash
+sudo apt update
 sudo apt install -y gfortran liblapack-dev libblas-dev libmsgpack-dev
 ```
 
