@@ -20,6 +20,8 @@ This chapter collects common errors with solutions, a complete environment varia
 | `Could NOT find BLAS (missing: BLAS_LIBRARIES)` | Client builds require LAPACK which depends on BLAS, but neither is installed. | `sudo apt install liblapack-dev libblas-dev` (Ubuntu/Debian) or `sudo dnf install lapack-devel blas-devel` (RHEL/Fedora). |
 | `add_subdirectory given source "../../shared/rocroller" which is not an existing directory` | RocRoller lives at `shared/rocroller` in the monorepo. In containers or sparse checkouts where only hipBLASLt is mounted, this path doesn't exist. | Disable with `-DHIPBLASLT_ENABLE_ROCROLLER=OFF`. JIT kernels won't be available but precompiled TensileLite kernels still work. |
 | `Could NOT find msgpack-cxx` / `Could NOT find msgpackc-cxx` | The msgpack serialization library is missing. Required by the TensileLite host library. | `sudo apt install libmsgpack-dev` (Ubuntu/Debian) or `sudo dnf install msgpack-cxx-devel` (RHEL/Fedora). |
+| `Compatibility with CMake < 3.5 has been removed from CMake` | CMake 4.x dropped support for old `cmake_minimum_required` versions used by some fetched dependencies (e.g. yaml-cpp). | Add `-DCMAKE_POLICY_VERSION_MINIMUM=3.5` to your cmake command. |
+| `ModuleNotFoundError: No module named 'joblib'` (or `yaml`, `msgpack`, etc.) | Python dependencies for TensileLite are not installed. The build runs Python scripts during CMake. | Set up a venv: `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt` |
 
 ### Runtime failures
 

@@ -47,6 +47,8 @@ chmod +x cmake-4.3.2-linux-x86_64.sh
 sudo ./cmake-4.3.2-linux-x86_64.sh --skip-license --prefix=/usr/local
 ```
 
+> **CMake 4.x compatibility note:** CMake 4.x removed compatibility with `cmake_minimum_required` < 3.5. Some fetched dependencies (e.g. yaml-cpp) use older versions. If you see `Compatibility with CMake < 3.5 has been removed`, add `-DCMAKE_POLICY_VERSION_MINIMUM=3.5` to your cmake command.
+
 ### Monorepo source dependencies (containers / sparse checkout)
 
 hipBLASLt lives at `projects/hipblaslt/` in the monorepo, but its build references sibling directories under `shared/`. If you're working in a container or sparse checkout, you need to check out (or mount) these additional folders:
