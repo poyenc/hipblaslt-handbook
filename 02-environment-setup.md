@@ -58,11 +58,7 @@ hipBLASLt lives at `projects/hipblaslt/` in the monorepo, but its build referenc
 | `shared/mxdatagenerator` | Client tests/benchmarks (MX format data) | `-DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF` |
 | `shared/rocroller` | Host library (JIT kernels) | `-DHIPBLASLT_ENABLE_ROCROLLER=OFF` |
 
-**Sparse checkout example** (from monorepo root):
-
-```bash
-git sparse-checkout set projects/hipblaslt shared/origami shared/stinkytofu shared/mxdatagenerator shared/rocroller
-```
+See [Cloning the Repo](#cloning-the-repo-essentials) for sparse checkout commands.
 
 **Container mount example** (assuming monorepo at `/workspace`):
 
