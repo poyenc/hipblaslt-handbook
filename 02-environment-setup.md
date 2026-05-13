@@ -46,11 +46,36 @@ chmod +x cmake-4.3.2-linux-x86_64.sh
 sudo ./cmake-4.3.2-linux-x86_64.sh --skip-license --prefix=/usr/local
 ```
 
-> **Container / sparse-checkout note:** If you only have `projects/hipblaslt` mounted (not the full monorepo), RocRoller at `../../shared/rocroller` won't be found. Disable it with `-DHIPBLASLT_ENABLE_ROCROLLER=OFF`. Similarly, disable BLIS with `-DHIPBLASLT_ENABLE_BLIS=OFF` if not installed. A typical container configure command:
->
-> ```bash
-> cmake --preset hipblaslt-clients -DHIPBLASLT_ENABLE_BLIS=OFF -DHIPBLASLT_ENABLE_ROCROLLER=OFF
-> ```
+### Monorepo source dependencies (containers / sparse checkout)
+
+hipBLASLt lives at `projects/hipblaslt/` in the monorepo, but its build references sibling directories under `shared/`. If you're working in a container or sparse checkout, you need to check out (or mount) these additional folders:
+
+| Monorepo path | Used by | Required? |
+|---|---|---|
+| `shared/rocroller` | hipBLASLt host library (JIT kernels) | Optional — disable with `-DHIPBLASLT_ENABLE_ROCROLLER=OFF` |
+| `shared/origami` | hipBLASLt host library (Stream-K) | Optional — currently disabled in CMake by default |
+| `shared/stinkytofu` | rocisa (ISA assembler for TensileLite) | Required for `invoke rocisa` / kernel code generation |
+
+**Sparse checkout example** (from monorepo root):
+
+```bash
+git sparse-checkout set projects/hipblaslt shared/rocroller shared/stinkytofu
+```
+
+**Container mount example** (assuming monorepo at `/workspace`):
+
+```bash
+docker run -v /path/to/rocm-libraries/projects/hipblaslt:/workspace/projects/hipblaslt \
+           -v /path/to/rocm-libraries/shared/rocroller:/workspace/shared/rocroller \
+           -v /path/to/rocm-libraries/shared/stinkytofu:/workspace/shared/stinkytofu \
+           ...
+```
+
+If you only need to build the host library and clients **without** RocRoller JIT or rocisa, you can skip the shared folders entirely:
+
+```bash
+cmake --preset hipblaslt-clients -DHIPBLASLT_ENABLE_BLIS=OFF -DHIPBLASLT_ENABLE_ROCROLLER=OFF
+```
 
 ### Operating system
 
