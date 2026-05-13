@@ -15,6 +15,8 @@ This chapter collects common errors with solutions, a complete environment varia
 | `No GPU_TARGETS specified` or architecture mismatch | `GPU_TARGETS` was not set, or the target does not match installed hardware. | Pass `-DGPU_TARGETS=gfx942` (or your GPU) explicitly. Supported targets are listed in `cmake/tensilelite_supported_architectures.cmake`. |
 | `TensileCreateLibrary` fails with `ModuleNotFoundError` (e.g. `yaml`, `msgpack`) | The Python environment is missing required packages for TensileLite. | Create a venv, run `pip install -r tensilelite/requirements.txt`, and configure with `-DPython_EXECUTABLE=$(pwd)/.venv/bin/python -DPython3_EXECUTABLE=$(pwd)/.venv/bin/python`. |
 | Link errors referencing `tensilelite::tensilelite-host` | Device libraries or host library not built. | Build with `HIPBLASLT_ENABLE_DEVICE=ON` and `TENSILELITE_ENABLE_HOST=ON` (both default ON). |
+| `The CMAKE_Fortran_COMPILER: gfortran is not a full path and was not found in the PATH` | Client builds require a Fortran compiler for LAPACK, but `gfortran` is not installed. | `sudo apt install gfortran` (Ubuntu/Debian) or `sudo dnf install gcc-gfortran` (RHEL/Fedora). |
+| `Could NOT find BLIS (missing: BLIS_LIB BLIS_INCLUDE_DIR)` | Client builds enable BLIS by default for CPU reference validation, but BLIS is not installed. | Disable with `-DHIPBLASLT_ENABLE_BLIS=OFF`, or install BLIS from [github.com/flame/blis](https://github.com/flame/blis). |
 
 ### Runtime failures
 
