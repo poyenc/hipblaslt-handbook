@@ -121,13 +121,7 @@ After either method, all build commands run from `projects/hipblaslt`.
 
 ## Building hipBLASLt [Essentials]
 
-Three methods are available, listed in recommended order.
-
-### Method 1: invoke (preferred)
-
-The `invoke` task runner wraps CMake with sensible defaults for compiler paths, build type, and dependency management. It is the recommended method for most development.
-
-**1. Create a virtual environment and install Python dependencies:**
+All build methods run TensileLite Python during the build. Set up a virtual environment first:
 
 ```bash
 python3 -m venv .venv
@@ -181,13 +175,7 @@ The build output goes to `build/release/` (or `build/debug/` for debug builds, `
 
 ### Method 2: CMake presets
 
-> **Python dependencies required:** All build methods (not just invoke) run TensileLite Python during the build. If you haven't already, set up the venv first:
-> ```bash
-> python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
-> ```
-> Then pass `-DPython_EXECUTABLE=$(pwd)/.venv/bin/python -DPython3_EXECUTABLE=$(pwd)/.venv/bin/python` to CMake, or ensure the venv is activated when running `cmake`.
-
-CMake presets provide named configurations defined in `CMakePresets.json`. They set compiler paths, install prefix, and component toggles automatically.
+CMake presets provide named configurations defined in `CMakePresets.json`. They set compiler paths, install prefix, and component toggles automatically. Make sure the venv is activated (see above) or pass `-DPython_EXECUTABLE=$(pwd)/.venv/bin/python -DPython3_EXECUTABLE=$(pwd)/.venv/bin/python` to CMake.
 
 **Available presets:**
 
