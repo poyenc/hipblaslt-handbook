@@ -34,7 +34,15 @@ An AMD GPU supported by hipBLASLt. The supported architectures are defined in `c
 Install all non-ROCm dependencies at once (Ubuntu/Debian):
 
 ```bash
-sudo apt install -y gfortran liblapack-dev libblas-dev libmsgpack-dev cmake
+sudo apt install -y gfortran liblapack-dev libblas-dev libmsgpack-dev
+```
+
+The `cmake` from `apt` is typically too old (3.22 on Ubuntu 22.04; hipBLASLt requires 3.25.2+). Install a recent version from cmake.org:
+
+```bash
+wget https://github.com/Kitware/CMake/releases/download/v4.3.2/cmake-4.3.2-linux-x86_64.sh
+chmod +x cmake-4.3.2-linux-x86_64.sh
+sudo ./cmake-4.3.2-linux-x86_64.sh --skip-license --prefix=/usr/local
 ```
 
 > **Container / sparse-checkout note:** If you only have `projects/hipblaslt` mounted (not the full monorepo), RocRoller at `../../shared/rocroller` won't be found. Disable it with `-DHIPBLASLT_ENABLE_ROCROLLER=OFF`. Similarly, disable BLIS with `-DHIPBLASLT_ENABLE_BLIS=OFF` if not installed. A typical container configure command:
