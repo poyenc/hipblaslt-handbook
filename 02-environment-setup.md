@@ -200,21 +200,14 @@ cmake --preset gemm-libs
 cmake --build build --parallel
 
 # Host + device + clients (tests and benchmarks)
-# BLIS is ON by default but not available via apt — disable unless you built it from source
-# CMAKE_POLICY_VERSION_MINIMUM is needed with CMake 4.x because RocRoller fetches
-# yaml-cpp which uses cmake_minimum_required(VERSION 3.4)
-cmake --preset hipblaslt-clients \
-  -DHIPBLASLT_ENABLE_BLIS=OFF \
-  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-cmake --build build --parallel
-
-# Sparse checkout / container — also disable deps that need missing shared/ folders
-# No CMAKE_POLICY_VERSION_MINIMUM needed since RocRoller (which fetches yaml-cpp) is OFF
+# -DHIPBLASLT_ENABLE_BLIS=OFF  — BLIS not available via apt, disable unless built from source
+# -DHIPBLASLT_ENABLE_ROCROLLER=OFF  — optional, remove if shared/rocroller is available
+# -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF  — optional, remove if shared/mxdatagenerator is available
+# -DCMAKE_POLICY_VERSION_MINIMUM=3.5  — only needed with CMake 4.x + RocRoller ON
 cmake --preset hipblaslt-clients \
   -DHIPBLASLT_ENABLE_BLIS=OFF \
   -DHIPBLASLT_ENABLE_ROCROLLER=OFF \
   -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF
-  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build build --parallel
 ```
 
