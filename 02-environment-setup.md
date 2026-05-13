@@ -213,39 +213,19 @@ cmake --build build --parallel
 
 > **Note:** Presets assume ROCm is installed at `/opt/rocm`. Additional version-pinned presets (e.g. `rocm-7.0.0`) exist for specific ROCm releases; run `cmake --list-presets` for the full list. See `CMakePresets.json` for the variables each preset configures.
 
-### Common CMake options
+Append `-D<OPTION>=<VALUE>` to customize the build. The most commonly needed options:
 
-These options apply to both Method 2 (presets) and Method 3 (direct). Append them with `-D<OPTION>=<VALUE>`.
+- **`-DGPU_TARGETS=gfx950`** — Build for your GPU only. Default builds all 15 architectures, which is the main reason builds are slow.
+- **`-DHIPBLASLT_ENABLE_BLIS=OFF`** — BLIS is not available via `apt`. Disable unless built from source.
+- **`-DHIPBLASLT_ENABLE_ROCROLLER=OFF`** — Disable if `shared/rocroller` is not available.
+- **`-DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF`** — Disable if `shared/mxdatagenerator` is not available.
+- **`-DCMAKE_POLICY_VERSION_MINIMUM=3.5`** — Only needed with CMake 4.x when RocRoller is ON.
 
-**Build speed options:**
-
-| Option | Default | Purpose |
-|--------|---------|---------|
-| `GPU_TARGETS` | all supported | Semicolon-separated GPU targets (e.g. `gfx950`). **Set this to your GPU only** — building all 15 architectures is the main reason builds are slow. |
-| `HIPBLASLT_ENABLE_DEVICE` | `ON` | Build precompiled device kernel libraries. Set `OFF` to skip kernel compilation and use system-installed device libs from `/opt/rocm` instead. |
-
-**Dependency options:**
-
-| Option | Default | Purpose |
-|--------|---------|---------|
-| `HIPBLASLT_ENABLE_BLIS` | `ON` | CPU reference library for test validation. Not available via `apt` — disable with `OFF` unless built from source. |
-| `HIPBLASLT_ENABLE_ROCROLLER` | `ON` | JIT kernel generation via RocRoller. Requires `shared/rocroller`. |
-| `HIPBLASLT_ENABLE_MXDATAGENERATOR` | `ON` | MX format data generation for tests. Requires `shared/mxdatagenerator`. |
-| `CMAKE_POLICY_VERSION_MINIMUM` | — | Set to `3.5` when using CMake 4.x with RocRoller ON (yaml-cpp compat). |
-
-**Component options:**
-
-| Option | Default | Purpose |
-|--------|---------|---------|
-| `HIPBLASLT_ENABLE_HOST` | `ON` | Build the main hipBLASLt shared library. |
-| `HIPBLASLT_ENABLE_CLIENT` | `ON` | Build tests, benchmarks, samples. |
-| `HIPBLASLT_ENABLE_SAMPLES` | `OFF` | Build sample programs (separate from tests/benchmarks). |
-| `TENSILELITE_ENABLE_HOST` | `ON` | Build TensileLite C++ host library. |
-| `TENSILELITE_ENABLE_CLIENT` | `OFF` | Build TensileLite standalone client. |
+See the [Build Options Cheat Sheet](#build-options-cheat-sheet-deep-dive) for the full list of all CMake options.
 
 ### Method 3: CMake directly (single architecture)
 
-For maximum control, configure CMake manually. Add any options from the [Common CMake options](#common-cmake-options) table above as needed.
+For maximum control, configure CMake manually. See options listed above or the [Build Options Cheat Sheet](#build-options-cheat-sheet-deep-dive) for all available flags.
 
 ```bash
 cmake -B build -S . \
@@ -317,7 +297,8 @@ Key CMake options and their defaults (from `CMakeLists.txt` and `device-library/
 | `HIPBLASLT_ENABLE_LAZY_LOAD` | `ON` | Lazy-loads code objects to reduce init memory; disable with `OFF` for debugging |
 | `HIPBLASLT_ENABLE_YAML` | `OFF` | `ON` to use YAML instead of msgpack for config parsing |
 | `HIPBLASLT_ENABLE_OPENMP` | `ON` | `OFF` to disable OpenMP (forced off on Windows) |
-| `HIPBLASLT_ENABLE_BLIS` | `ON` | CPU reference library for test validation; `OFF` to disable |
+| `HIPBLASLT_ENABLE_BLIS` | `ON` | CPU reference library for test validation; `OFF` to disable (not available via `apt`) |
+| `HIPBLASLT_ENABLE_MXDATAGENERATOR` | `ON` | MX format data generation for tests; `OFF` if `shared/mxdatagenerator` is unavailable |
 | `HIPBLASLT_ENABLE_EXTOPS` | `ON` | `OFF` to skip building ExtOp device libraries (softmax, layernorm, amax) |
 | `HIPBLASLT_ENABLE_MATRIX_TRANSFORM` | `ON` | `OFF` to skip building matrix transform device libraries |
 | `HIPBLASLT_ENABLE_ASAN` | `OFF` | `ON` for Address Sanitizer builds (requires `xnack+` architecture) |
