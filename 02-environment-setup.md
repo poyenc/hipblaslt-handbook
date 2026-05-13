@@ -29,6 +29,13 @@ An AMD GPU supported by hipBLASLt. The supported architectures are defined in `c
 | C compiler | `amdclang` | Ships with ROCm at `/opt/rocm/bin/amdclang` |
 | Fortran compiler | `gfortran` | Client builds only. `sudo apt install gfortran` |
 | LAPACK + BLAS | `liblapack-dev`, `libblas-dev` | Client builds only. `sudo apt install liblapack-dev libblas-dev` |
+| msgpack-cxx | `libmsgpack-cxx-dev` | Serialization library for TensileLite. `sudo apt install libmsgpack-cxx-dev` |
+
+> **Container / sparse-checkout note:** If you only have `projects/hipblaslt` mounted (not the full monorepo), RocRoller at `../../shared/rocroller` won't be found. Disable it with `-DHIPBLASLT_ENABLE_ROCROLLER=OFF`. Similarly, disable BLIS with `-DHIPBLASLT_ENABLE_BLIS=OFF` if not installed. A typical container configure command:
+>
+> ```bash
+> cmake --preset hipblaslt-clients -DHIPBLASLT_ENABLE_BLIS=OFF -DHIPBLASLT_ENABLE_ROCROLLER=OFF
+> ```
 
 ### Operating system
 

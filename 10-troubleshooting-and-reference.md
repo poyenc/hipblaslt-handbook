@@ -18,6 +18,8 @@ This chapter collects common errors with solutions, a complete environment varia
 | `The CMAKE_Fortran_COMPILER: gfortran is not a full path and was not found in the PATH` | Client builds require a Fortran compiler for LAPACK, but `gfortran` is not installed. | `sudo apt install gfortran` (Ubuntu/Debian) or `sudo dnf install gcc-gfortran` (RHEL/Fedora). |
 | `Could NOT find BLIS (missing: BLIS_LIB BLIS_INCLUDE_DIR)` | Client builds enable BLIS by default for CPU reference validation, but BLIS is not installed. | Disable with `-DHIPBLASLT_ENABLE_BLIS=OFF`, or install BLIS from [github.com/flame/blis](https://github.com/flame/blis). |
 | `Could NOT find BLAS (missing: BLAS_LIBRARIES)` | Client builds require LAPACK which depends on BLAS, but neither is installed. | `sudo apt install liblapack-dev libblas-dev` (Ubuntu/Debian) or `sudo dnf install lapack-devel blas-devel` (RHEL/Fedora). |
+| `add_subdirectory given source "../../shared/rocroller" which is not an existing directory` | RocRoller lives at `shared/rocroller` in the monorepo. In containers or sparse checkouts where only hipBLASLt is mounted, this path doesn't exist. | Disable with `-DHIPBLASLT_ENABLE_ROCROLLER=OFF`. JIT kernels won't be available but precompiled TensileLite kernels still work. |
+| `Could NOT find msgpack-cxx` / `Could NOT find msgpackc-cxx` | The msgpack serialization library is missing. Required by the TensileLite host library. | `sudo apt install libmsgpack-cxx-dev` (Ubuntu/Debian) or `sudo dnf install msgpack-cxx-devel` (RHEL/Fedora). |
 
 ### Runtime failures
 
