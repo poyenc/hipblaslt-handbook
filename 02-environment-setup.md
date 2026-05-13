@@ -209,6 +209,14 @@ cmake --build build --parallel
 # Host + device + clients (tests and benchmarks)
 cmake --preset hipblaslt-clients
 cmake --build build --parallel
+
+# Container / sparse checkout — disable deps that require missing shared/ folders
+cmake --preset hipblaslt-clients \
+  -DHIPBLASLT_ENABLE_BLIS=OFF \
+  -DHIPBLASLT_ENABLE_ROCROLLER=OFF \
+  -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+cmake --build build --parallel
 ```
 
 > **Note:** Presets assume ROCm is installed at `/opt/rocm`. Additional version-pinned presets (e.g. `rocm-7.0.0`) exist for specific ROCm releases; run `cmake --list-presets` for the full list. See `CMakePresets.json` for the variables each preset configures.
@@ -224,6 +232,23 @@ cmake -B build -S . \
   -DCMAKE_C_COMPILER=/opt/rocm/bin/amdclang \
   -DCMAKE_PREFIX_PATH=/opt/rocm \
   -DGPU_TARGETS=gfx950
+
+cmake --build build --parallel
+```
+
+For containers or sparse checkouts without full `shared/` folders:
+
+```bash
+cmake -B build -S . \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_COMPILER=/opt/rocm/bin/amdclang++ \
+  -DCMAKE_C_COMPILER=/opt/rocm/bin/amdclang \
+  -DCMAKE_PREFIX_PATH=/opt/rocm \
+  -DGPU_TARGETS=gfx950 \
+  -DHIPBLASLT_ENABLE_BLIS=OFF \
+  -DHIPBLASLT_ENABLE_ROCROLLER=OFF \
+  -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
 cmake --build build --parallel
 ```
