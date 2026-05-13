@@ -27,8 +27,8 @@ An AMD GPU supported by hipBLASLt. The supported architectures are defined in `c
 | Python | 3.8+ | Required for device library generation and test data |
 | C++ compiler | `amdclang++` | Ships with ROCm at `/opt/rocm/bin/amdclang++` |
 | C compiler | `amdclang` | Ships with ROCm at `/opt/rocm/bin/amdclang` |
-| Fortran compiler | `gfortran` | Required only for client builds (tests/benchmarks). Install with `sudo apt install gfortran` |
-| LAPACK | — | Required only for client builds. Found automatically via CMake `find_package(LAPACK)` |
+| Fortran compiler | `gfortran` | Client builds only. `sudo apt install gfortran` |
+| LAPACK + BLAS | `liblapack-dev`, `libblas-dev` | Client builds only. `sudo apt install liblapack-dev libblas-dev` |
 
 ### Operating system
 

@@ -17,6 +17,7 @@ This chapter collects common errors with solutions, a complete environment varia
 | Link errors referencing `tensilelite::tensilelite-host` | Device libraries or host library not built. | Build with `HIPBLASLT_ENABLE_DEVICE=ON` and `TENSILELITE_ENABLE_HOST=ON` (both default ON). |
 | `The CMAKE_Fortran_COMPILER: gfortran is not a full path and was not found in the PATH` | Client builds require a Fortran compiler for LAPACK, but `gfortran` is not installed. | `sudo apt install gfortran` (Ubuntu/Debian) or `sudo dnf install gcc-gfortran` (RHEL/Fedora). |
 | `Could NOT find BLIS (missing: BLIS_LIB BLIS_INCLUDE_DIR)` | Client builds enable BLIS by default for CPU reference validation, but BLIS is not installed. | Disable with `-DHIPBLASLT_ENABLE_BLIS=OFF`, or install BLIS from [github.com/flame/blis](https://github.com/flame/blis). |
+| `Could NOT find BLAS (missing: BLAS_LIBRARIES)` | Client builds require LAPACK which depends on BLAS, but neither is installed. | `sudo apt install liblapack-dev libblas-dev` (Ubuntu/Debian) or `sudo dnf install lapack-devel blas-devel` (RHEL/Fedora). |
 
 ### Runtime failures
 
