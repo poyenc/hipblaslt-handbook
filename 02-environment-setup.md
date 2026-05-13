@@ -30,12 +30,13 @@ An AMD GPU supported by hipBLASLt. The supported architectures are defined in `c
 | Fortran compiler | `gfortran` | Client builds only |
 | LAPACK + BLAS | `liblapack-dev`, `libblas-dev` | Client builds only |
 | msgpack-cxx | `libmsgpack-dev` | Serialization library for TensileLite |
+| Google Test | `libgtest-dev` | Client builds only (test framework) |
 
 Install all non-ROCm dependencies at once (Ubuntu/Debian):
 
 ```bash
 sudo apt update
-sudo apt install -y gfortran liblapack-dev libblas-dev libmsgpack-dev
+sudo apt install -y gfortran liblapack-dev libblas-dev libmsgpack-dev libgtest-dev
 ```
 
 The `cmake` from `apt` is typically too old (3.22 on Ubuntu 22.04; hipBLASLt requires 3.25.2+). Install a recent version from cmake.org:
