@@ -22,6 +22,7 @@ This chapter collects common errors with solutions, a complete environment varia
 | `Could NOT find msgpack-cxx` / `Could NOT find msgpackc-cxx` | The msgpack serialization library is missing. Required by the TensileLite host library. | `sudo apt install libmsgpack-dev` (Ubuntu/Debian) or `sudo dnf install msgpack-cxx-devel` (RHEL/Fedora). |
 | `Compatibility with CMake < 3.5 has been removed from CMake` | CMake 4.x dropped support for old `cmake_minimum_required` versions used by some fetched dependencies (e.g. yaml-cpp). | Add `-DCMAKE_POLICY_VERSION_MINIMUM=3.5` to your cmake command. |
 | `ModuleNotFoundError: No module named 'joblib'` (or `yaml`, `msgpack`, etc.) | Python dependencies for TensileLite are not installed. The build runs Python scripts during CMake. | Set up a venv: `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt` |
+| `ld.lld: error: cannot open *.o: Cannot allocate memory` during TensileLite device library build | The linker runs out of memory when linking thousands of kernel `.o` files into a single code object. Even a single architecture (e.g. gfx950 with 617 logic files) can exhaust memory. | Use `-DTENSILELITE_LOGIC_FILTER` to build a subset (e.g. `-DTENSILELITE_LOGIC_FILTER="gfx950/Equality/*"`), reduce parallelism (`cmake --build build --parallel 4`), or add swap (`fallocate -l 16G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile`). |
 
 ### Runtime failures
 
