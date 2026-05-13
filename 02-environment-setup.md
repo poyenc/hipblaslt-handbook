@@ -27,9 +27,15 @@ An AMD GPU supported by hipBLASLt. The supported architectures are defined in `c
 | Python | 3.8+ | Required for device library generation and test data |
 | C++ compiler | `amdclang++` | Ships with ROCm at `/opt/rocm/bin/amdclang++` |
 | C compiler | `amdclang` | Ships with ROCm at `/opt/rocm/bin/amdclang` |
-| Fortran compiler | `gfortran` | Client builds only. `sudo apt install gfortran` |
-| LAPACK + BLAS | `liblapack-dev`, `libblas-dev` | Client builds only. `sudo apt install liblapack-dev libblas-dev` |
-| msgpack-cxx | `libmsgpack-dev` | Serialization library for TensileLite. `sudo apt install libmsgpack-dev` |
+| Fortran compiler | `gfortran` | Client builds only |
+| LAPACK + BLAS | `liblapack-dev`, `libblas-dev` | Client builds only |
+| msgpack-cxx | `libmsgpack-dev` | Serialization library for TensileLite |
+
+Install all non-ROCm dependencies at once (Ubuntu/Debian):
+
+```bash
+sudo apt install -y gfortran liblapack-dev libblas-dev libmsgpack-dev cmake
+```
 
 > **Container / sparse-checkout note:** If you only have `projects/hipblaslt` mounted (not the full monorepo), RocRoller at `../../shared/rocroller` won't be found. Disable it with `-DHIPBLASLT_ENABLE_ROCROLLER=OFF`. Similarly, disable BLIS with `-DHIPBLASLT_ENABLE_BLIS=OFF` if not installed. A typical container configure command:
 >
