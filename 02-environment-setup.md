@@ -73,14 +73,7 @@ docker run -v /path/to/rocm-libraries/projects/hipblaslt:/workspace/projects/hip
            ...
 ```
 
-`shared/origami` and `shared/stinkytofu` are always required — there is no CMake option to disable them. To skip the optional ones:
-
-```bash
-cmake --preset hipblaslt-clients \
-  -DHIPBLASLT_ENABLE_BLIS=OFF \
-  -DHIPBLASLT_ENABLE_ROCROLLER=OFF \
-  -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF
-```
+`shared/origami` and `shared/stinkytofu` are always required — there is no CMake option to disable them. The optional ones (`rocroller`, `mxdatagenerator`) can be disabled at configure time — see [Method 2](#method-2-cmake-presets) and [Method 3](#method-3-cmake-directly-single-architecture) below for the exact commands.
 
 ### Operating system
 
