@@ -52,22 +52,25 @@ hipBLASLt lives at `projects/hipblaslt/` in the monorepo, but its build referenc
 
 | Monorepo path | Used by | Required? |
 |---|---|---|
-| `shared/rocroller` | hipBLASLt host library (JIT kernels) | Optional — disable with `-DHIPBLASLT_ENABLE_ROCROLLER=OFF` |
-| `shared/origami` | hipBLASLt host library (Stream-K) | Optional — currently disabled in CMake by default |
-| `shared/stinkytofu` | rocisa (ISA assembler for TensileLite) | Required for `invoke rocisa` / kernel code generation |
+| `shared/origami` | Host library (Stream-K) + rocisa | Yes — used by both hipBLASLt and TensileLite's rocisa |
+| `shared/stinkytofu` | rocisa (ISA assembler for TensileLite) | Yes — required for kernel code generation |
+| `shared/mxdatagenerator` | Client tests/benchmarks (MX format data) | Yes for client builds |
+| `shared/rocroller` | Host library (JIT kernels) | Optional — disable with `-DHIPBLASLT_ENABLE_ROCROLLER=OFF` |
 
 **Sparse checkout example** (from monorepo root):
 
 ```bash
-git sparse-checkout set projects/hipblaslt shared/rocroller shared/stinkytofu
+git sparse-checkout set projects/hipblaslt shared/origami shared/stinkytofu shared/mxdatagenerator shared/rocroller
 ```
 
 **Container mount example** (assuming monorepo at `/workspace`):
 
 ```bash
 docker run -v /path/to/rocm-libraries/projects/hipblaslt:/workspace/projects/hipblaslt \
-           -v /path/to/rocm-libraries/shared/rocroller:/workspace/shared/rocroller \
+           -v /path/to/rocm-libraries/shared/origami:/workspace/shared/origami \
            -v /path/to/rocm-libraries/shared/stinkytofu:/workspace/shared/stinkytofu \
+           -v /path/to/rocm-libraries/shared/mxdatagenerator:/workspace/shared/mxdatagenerator \
+           -v /path/to/rocm-libraries/shared/rocroller:/workspace/shared/rocroller \
            ...
 ```
 
