@@ -245,7 +245,7 @@ These options apply to both Method 2 (presets) and Method 3 (direct). Append the
 
 ### Method 3: CMake directly (single architecture)
 
-For maximum control, configure CMake manually. This is useful when you need non-default paths or options.
+For maximum control, configure CMake manually. Add any options from the [Common CMake options](#common-cmake-options) table above as needed.
 
 ```bash
 cmake -B build -S . \
@@ -254,38 +254,7 @@ cmake -B build -S . \
   -DCMAKE_C_COMPILER=/opt/rocm/bin/amdclang \
   -DCMAKE_PREFIX_PATH=/opt/rocm \
   -DGPU_TARGETS=gfx950 \
-  -DHIPBLASLT_ENABLE_BLIS=OFF \
-  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-
-cmake --build build --parallel
-```
-
-For sparse checkouts / containers without full `shared/` folders, also disable the optional shared deps:
-
-```bash
-cmake -B build -S . \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_CXX_COMPILER=/opt/rocm/bin/amdclang++ \
-  -DCMAKE_C_COMPILER=/opt/rocm/bin/amdclang \
-  -DCMAKE_PREFIX_PATH=/opt/rocm \
-  -DGPU_TARGETS=gfx950 \
-  -DHIPBLASLT_ENABLE_BLIS=OFF \
-  -DHIPBLASLT_ENABLE_ROCROLLER=OFF \
-  -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF
-
-cmake --build build --parallel
-```
-
-The above command builds everything including client tests and benchmarks (`HIPBLASLT_ENABLE_CLIENT` defaults to `ON` in CMake). Note that `inv build` defaults to clients OFF -- you must pass `--clients` to include them. To build the library only without clients using CMake directly:
-
-```bash
-cmake -B build -S . \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_CXX_COMPILER=/opt/rocm/bin/amdclang++ \
-  -DCMAKE_C_COMPILER=/opt/rocm/bin/amdclang \
-  -DCMAKE_PREFIX_PATH=/opt/rocm \
-  -DGPU_TARGETS=gfx950 \
-  -DHIPBLASLT_ENABLE_CLIENT=OFF
+  -DHIPBLASLT_ENABLE_BLIS=OFF
 
 cmake --build build --parallel
 ```
