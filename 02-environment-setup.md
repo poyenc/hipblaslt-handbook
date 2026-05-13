@@ -47,7 +47,7 @@ chmod +x cmake-4.3.2-linux-x86_64.sh
 sudo ./cmake-4.3.2-linux-x86_64.sh --skip-license --prefix=/usr/local
 ```
 
-> **CMake 4.x compatibility note:** CMake 4.x removed compatibility with `cmake_minimum_required` < 3.5. Some fetched dependencies (e.g. yaml-cpp) use older versions. If you see `Compatibility with CMake < 3.5 has been removed`, add `-DCMAKE_POLICY_VERSION_MINIMUM=3.5` to your cmake command.
+> **CMake 4.x compatibility note:** CMake 4.x removed compatibility with `cmake_minimum_required` < 3.5. RocRoller fetches yaml-cpp which uses version 3.4. If you see `Compatibility with CMake < 3.5 has been removed`, add `-DCMAKE_POLICY_VERSION_MINIMUM=3.5` to your cmake command. This is not needed when RocRoller is disabled (`-DHIPBLASLT_ENABLE_ROCROLLER=OFF`).
 
 ### Monorepo source dependencies (containers / sparse checkout)
 
@@ -208,16 +208,19 @@ cmake --build build --parallel
 
 # Host + device + clients (tests and benchmarks)
 # BLIS is ON by default but not available via apt — disable unless you built it from source
+# CMAKE_POLICY_VERSION_MINIMUM is needed with CMake 4.x because RocRoller fetches
+# yaml-cpp which uses cmake_minimum_required(VERSION 3.4)
 cmake --preset hipblaslt-clients \
   -DHIPBLASLT_ENABLE_BLIS=OFF \
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build build --parallel
 
 # Sparse checkout / container — also disable deps that need missing shared/ folders
+# No CMAKE_POLICY_VERSION_MINIMUM needed since RocRoller (which fetches yaml-cpp) is OFF
 cmake --preset hipblaslt-clients \
   -DHIPBLASLT_ENABLE_BLIS=OFF \
   -DHIPBLASLT_ENABLE_ROCROLLER=OFF \
-  -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF \
+  -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF
   -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build build --parallel
 ```
@@ -252,8 +255,7 @@ cmake -B build -S . \
   -DGPU_TARGETS=gfx950 \
   -DHIPBLASLT_ENABLE_BLIS=OFF \
   -DHIPBLASLT_ENABLE_ROCROLLER=OFF \
-  -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF \
-  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+  -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF
 
 cmake --build build --parallel
 ```
