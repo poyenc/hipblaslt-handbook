@@ -207,10 +207,13 @@ cmake --preset gemm-libs
 cmake --build build --parallel
 
 # Host + device + clients (tests and benchmarks)
-cmake --preset hipblaslt-clients
+# BLIS is ON by default but not available via apt — disable unless you built it from source
+cmake --preset hipblaslt-clients \
+  -DHIPBLASLT_ENABLE_BLIS=OFF \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build build --parallel
 
-# Container / sparse checkout — disable deps that require missing shared/ folders
+# Sparse checkout / container — also disable deps that need missing shared/ folders
 cmake --preset hipblaslt-clients \
   -DHIPBLASLT_ENABLE_BLIS=OFF \
   -DHIPBLASLT_ENABLE_ROCROLLER=OFF \
@@ -231,12 +234,14 @@ cmake -B build -S . \
   -DCMAKE_CXX_COMPILER=/opt/rocm/bin/amdclang++ \
   -DCMAKE_C_COMPILER=/opt/rocm/bin/amdclang \
   -DCMAKE_PREFIX_PATH=/opt/rocm \
-  -DGPU_TARGETS=gfx950
+  -DGPU_TARGETS=gfx950 \
+  -DHIPBLASLT_ENABLE_BLIS=OFF \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
 cmake --build build --parallel
 ```
 
-For containers or sparse checkouts without full `shared/` folders:
+For sparse checkouts / containers without full `shared/` folders, also disable the optional shared deps:
 
 ```bash
 cmake -B build -S . \
