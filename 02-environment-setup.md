@@ -213,6 +213,36 @@ cmake --build build --parallel
 
 > **Note:** Presets assume ROCm is installed at `/opt/rocm`. Additional version-pinned presets (e.g. `rocm-7.0.0`) exist for specific ROCm releases; run `cmake --list-presets` for the full list. See `CMakePresets.json` for the variables each preset configures.
 
+### Common CMake options
+
+These options apply to both Method 2 (presets) and Method 3 (direct). Append them with `-D<OPTION>=<VALUE>`.
+
+**Build speed options:**
+
+| Option | Default | Purpose |
+|--------|---------|---------|
+| `GPU_TARGETS` | all supported | Semicolon-separated GPU targets (e.g. `gfx950`). **Set this to your GPU only** — building all 15 architectures is the main reason builds are slow. |
+| `HIPBLASLT_ENABLE_DEVICE` | `ON` | Build precompiled device kernel libraries. Set `OFF` to skip kernel compilation and use system-installed device libs from `/opt/rocm` instead. |
+
+**Dependency options:**
+
+| Option | Default | Purpose |
+|--------|---------|---------|
+| `HIPBLASLT_ENABLE_BLIS` | `ON` | CPU reference library for test validation. Not available via `apt` — disable with `OFF` unless built from source. |
+| `HIPBLASLT_ENABLE_ROCROLLER` | `ON` | JIT kernel generation via RocRoller. Requires `shared/rocroller`. |
+| `HIPBLASLT_ENABLE_MXDATAGENERATOR` | `ON` | MX format data generation for tests. Requires `shared/mxdatagenerator`. |
+| `CMAKE_POLICY_VERSION_MINIMUM` | — | Set to `3.5` when using CMake 4.x with RocRoller ON (yaml-cpp compat). |
+
+**Component options:**
+
+| Option | Default | Purpose |
+|--------|---------|---------|
+| `HIPBLASLT_ENABLE_HOST` | `ON` | Build the main hipBLASLt shared library. |
+| `HIPBLASLT_ENABLE_CLIENT` | `ON` | Build tests, benchmarks, samples. |
+| `HIPBLASLT_ENABLE_SAMPLES` | `OFF` | Build sample programs (separate from tests/benchmarks). |
+| `TENSILELITE_ENABLE_HOST` | `ON` | Build TensileLite C++ host library. |
+| `TENSILELITE_ENABLE_CLIENT` | `OFF` | Build TensileLite standalone client. |
+
 ### Method 3: CMake directly (single architecture)
 
 For maximum control, configure CMake manually. This is useful when you need non-default paths or options.
