@@ -51,12 +51,12 @@ sudo ./cmake-4.3.2-linux-x86_64.sh --skip-license --prefix=/usr/local
 
 hipBLASLt lives at `projects/hipblaslt/` in the monorepo, but its build references sibling directories under `shared/`. If you're working in a container or sparse checkout, you need to check out (or mount) these additional folders:
 
-| Monorepo path | Used by | Required? |
+| Monorepo path | Used by | Disable option |
 |---|---|---|
-| `shared/origami` | Host library (Stream-K) + rocisa | Yes — used by both hipBLASLt and TensileLite's rocisa |
-| `shared/stinkytofu` | rocisa (ISA assembler for TensileLite) | Yes — required for kernel code generation |
-| `shared/mxdatagenerator` | Client tests/benchmarks (MX format data) | Yes for client builds |
-| `shared/rocroller` | Host library (JIT kernels) | Optional — disable with `-DHIPBLASLT_ENABLE_ROCROLLER=OFF` |
+| `shared/origami` | Host library (Stream-K) + rocisa | None — always required |
+| `shared/stinkytofu` | rocisa (ISA assembler for TensileLite) | None — always required |
+| `shared/mxdatagenerator` | Client tests/benchmarks (MX format data) | `-DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF` |
+| `shared/rocroller` | Host library (JIT kernels) | `-DHIPBLASLT_ENABLE_ROCROLLER=OFF` |
 
 **Sparse checkout example** (from monorepo root):
 
@@ -75,10 +75,13 @@ docker run -v /path/to/rocm-libraries/projects/hipblaslt:/workspace/projects/hip
            ...
 ```
 
-If you only need to build the host library and clients **without** RocRoller JIT or rocisa, you can skip the shared folders entirely:
+`shared/origami` and `shared/stinkytofu` are always required — there is no CMake option to disable them. To skip the optional ones:
 
 ```bash
-cmake --preset hipblaslt-clients -DHIPBLASLT_ENABLE_BLIS=OFF -DHIPBLASLT_ENABLE_ROCROLLER=OFF
+cmake --preset hipblaslt-clients \
+  -DHIPBLASLT_ENABLE_BLIS=OFF \
+  -DHIPBLASLT_ENABLE_ROCROLLER=OFF \
+  -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF
 ```
 
 ### Operating system
