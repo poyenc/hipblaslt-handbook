@@ -381,16 +381,13 @@ The TensileLite client (`tensilelite-client`) is a standalone C++ executable for
 
 ```bash
 cd tensilelite
-
-# Build to the default location (tensilelite/build_tmp)
-invoke build-client
-
-# Override toolchain and architecture
-invoke build-client \
-  --gpu-targets gfx950 \
-  --rocm-path /opt/rocm-7.3.0 \
-  --export-compile-commands
+cmake --preset tensilelite -S ../ -B build_tmp \
+  -DGPU_TARGETS=gfx950 \
+  -DHIPBLASLT_ENABLE_YAML=OFF
+cmake --build build_tmp --parallel
 ```
+
+> **Note:** You can also use `invoke build-client --gpu-targets gfx950`, but this enables `HIPBLASLT_ENABLE_YAML=ON` by default and requires LLVM development packages (`sudo apt install llvm-dev`).
 
 ### Run individual TensileLite tests
 
@@ -403,6 +400,7 @@ Tensile/bin/Tensile Tensile/Tests/common/exception/<test>.yaml tensile-out
 
 ```bash
 cd tensilelite
+pip install tox   # not included in the root requirements.txt
 
 # Full common test suite
 tox -e py3 -- Tensile/Tests -m common
