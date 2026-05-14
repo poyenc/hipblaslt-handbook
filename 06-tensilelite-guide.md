@@ -86,8 +86,9 @@ This section defines concepts specific to TensileLite that build on the
 rocisa is a Python/C++ ISA code generator built with nanobind. It provides
 Python bindings to ROCm ISA primitives -- registers, instructions, data
 types -- so kernel writers can construct assembly programs from Python without
-string manipulation. It also contains the stinkytofu C++ layer (typed enums
-for DPP/MFMA modifier fields, etc.). Build or rebuild it from the
+string manipulation. It also contains the stinkytofu C++ submodule (typed
+enums for DPP (data-parallel primitive) and MFMA (matrix fused
+multiply-accumulate) modifier fields). Build or rebuild it from the
 tensilelite root with:
 
 ```bash
@@ -277,13 +278,14 @@ Each logic file is a YAML list with a fixed element structure:
 
 ### Walkthrough of a real logic file
 
-The file below is `gfx950_Cijk_Ailk_Bjlk_HHS_BH_Bias_Aux_AH_SAV.yaml`
+The walkthrough below expands each element from the table above using a
+real gfx950 logic file as an example.
+
+The file is `gfx950_Cijk_Ailk_Bjlk_HHS_BH_Bias_Aux_AH_SAV.yaml`
 (GridBased selection, gfx950). The filename encodes the contraction
 pattern and features: `Cijk` = C tensor indices, `Ailk`/`Bjlk` = A and B
 layouts, `HHS` = half/half/single types, `BH` = high-precision accumulate,
 `Bias` = bias enabled, `AH` = activation hipblaslt, `SAV` = scale-alpha-vec.
-
-A logic file is a YAML list with a fixed structure:
 
 **Element 0 -- Version header:**
 
@@ -317,12 +319,12 @@ This is a large mapping that fully specifies the GEMM variant. Key fields:
 |-------|---------------|---------|
 | `OperationType` | `GEMM` | Always GEMM for matrix multiply |
 | `DataType` | `4` | Input data type (4 = half) |
-| `DestDataType` | `0` | Output data type (0 = single) |
+| `DestDataType` | `4` | Output data type (4 = half) |
 | `ComputeDataType` | `0` | Accumulation data type (see `Common/DataType.py` for numeric code mapping) |
 | `HighPrecisionAccumulate` | `true` | Use higher precision in MAC |
-| `TransposeA` | `1` | A is transposed (0 = N, 1 = T) |
+| `TransposeA` | `0` | A is not transposed (0 = N, 1 = T) |
 | `TransposeB` | `1` | B is transposed (0 = N, 1 = T) |
-| `IndexAssignmentsA` | `[3, 0, 2]` | How A indices map to tensor dims |
+| `IndexAssignmentsA` | `[0, 3, 2]` | How A indices map to tensor dims |
 | `IndexAssignmentsB` | `[1, 3, 2]` | How B indices map to tensor dims |
 | `IndicesFree` | `[0, 1]` | Free (output) indices |
 | `IndicesSummation` | `[3]` | Summation (contraction) indices |
@@ -342,13 +344,13 @@ parameters. Important fields from the real file:
 | Field | Example value | Purpose |
 |-------|---------------|---------|
 | `SolutionIndex` | `0` | Unique ID within this file |
-| `SolutionNameMin` | `Cijk_Alik_Bjlk_HHS_BBiasH_AH_SAV_MT32x32x32_MI16x16x16x1_SN_MIWT1_1` | Human-readable name |
+| `SolutionNameMin` | `Cijk_Ailk_Bjlk_HHS_BH_Bias_Aux_AH_SAV_MT128x256x32_MI32x32x8x1_SN_...` | Human-readable name |
 | `KernelLanguage` | `Assembly` | Assembly (not source) |
 | `ISA` | `[9, 5, 0]` | Target ISA = gfx950 |
-| `MacroTile0` / `MacroTile1` | `32` / `32` | Work-group tile dimensions |
+| `MacroTile0` / `MacroTile1` | `128` / `256` | Work-group tile dimensions |
 | `DepthU` | `32` | Unroll depth along K |
-| `MatrixInstruction` | `[16, 16, 16, 1]` | MFMA instruction: M, N, K, blocks |
-| `WorkGroup` | `[32, 8, 1]` | Thread group dimensions |
+| `MatrixInstruction` | `[32, 32, 8, 1]` | MFMA instruction: M, N, K, blocks |
+| `WorkGroup` | `[64, 4, 1]` | Thread group dimensions |
 | `NumThreads` | `256` | Threads per work-group |
 | `PrefetchGlobalRead` | `2` | Prefetch pipeline depth |
 | `PrefetchLocalRead` | `1` | LDS prefetch depth |
@@ -357,9 +359,9 @@ parameters. Important fields from the real file:
 | `BufferLoad` / `BufferStore` | `true` / `true` | Use buffer instructions |
 | `StaggerU` | `32` | Stagger unroll to reduce bank conflicts |
 | `WavefrontSize` | `64` | Wavefront width |
-| `VectorWidth` | `1` | Output vector width |
+| `VectorWidth` | `2` | Output vector width |
 | `CustomKernelName` | `''` | Empty = auto-generated kernel |
-| `LdsNumElements` | `6272` | LDS usage in elements |
+| `LdsNumElements` | `12288` | LDS usage in elements |
 | `WorkGroupMapping` | `8` | Work-group mapping strategy |
 | `SourceSwap` | `true` | Swap A/B sources |
 | `DirectToLds` | `0` | Direct global-to-LDS transfer |
@@ -376,12 +378,14 @@ Maps tensor indices to their roles.
 **Element 7 -- Size-to-solution mapping table:**
 
 ```yaml
-- - - [1, 1, 1, 1]
-    - [0, 0]
+- - - [4607, 1335, 1, 320, 4607, 4607, 4607, 1335]
+    - [1, 19321.7]
 ```
 
-Maps problem sizes to solution indices. The first sub-list contains size
-ranges; the second sub-list contains `[SolutionIndex, efficiency]` pairs.
+Maps problem dimensions to solution indices.  Each entry is a pair: an
+8-element tuple of dimension/stride bounds, and a `[SolutionIndex,
+efficiency]` pair.  The efficiency value (e.g., 19321.7) is the measured
+performance used for heuristic ranking.
 
 **Elements 8-9 -- Reserved (null):**
 
@@ -449,7 +453,7 @@ architecture. `Common/ValidParameters.py` defines the allowed ranges.
 ### Stage 3: Kernel code generation
 
 `KernelWriterAssembly.py` is the main code generator. It uses `rocisa` to
-emit GCN assembly instructions. The generation is modular:
+emit GPU ISA assembly instructions (CDNA and RDNA). The generation is modular:
 
 - **Components/** contains reusable assembly-generation modules. Each
   component handles one aspect of the kernel:
