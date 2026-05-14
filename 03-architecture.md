@@ -2,7 +2,8 @@
 
 This chapter defines the core concepts used throughout hipBLASLt and traces
 the path a GEMM call takes from the public API down to a GPU kernel launch.
-If you need a refresher on what a GEMM operation is, see Chapter 1.
+If you need a refresher on what a GEMM operation is, see
+[Chapter 1: What is hipBLASLt?](01-what-is-hipblaslt.md).
 
 
 ## 1. Core concepts `[Essentials]`
@@ -54,6 +55,7 @@ Every GEMM call passes through four layers before a GPU kernel executes.
 
 ```
 App            hipblaslt.cpp     rocblaslt_mat.cpp    tensile_host.cpp     GPU
+               (Public API)      (rocblaslt backend)  (TensileLite dispatch)
  │                  │                  │                    │                │
  │ hipblasLtMatmul()│                  │                    │                │
  │─────────────────>│                  │                    │                │
@@ -73,12 +75,16 @@ a thin translation layer between the public types and the internal types.
 **rocblaslt backend (`rocblaslt_mat.cpp`).** `rocblaslt_matmul()` validates
 arguments (null pointers, type mismatches, workspace size) and delegates to
 `rocblaslt_matmul_impl()`.  That function extracts dimensions, data types,
-and epilogue settings from the descriptors, packs them into a
+and epilogue settings (post-GEMM operations such as bias, activation,
+and scaling) from the descriptors, packs them into a
 `RocblasltContractionProblem`, and calls `runContractionProblem()`.
 
 **TensileLite dispatch (`tensile_host.cpp`).** `runContractionProblem()`
 obtains the `MasterSolutionLibrary` and a `SolutionAdapter` via
-`get_library_and_adapter()`.  It translates the `RocblasltContractionProblem`
+`get_library_and_adapter()`.  The `MasterSolutionLibrary` is the in-memory
+library tree described in Section 1; the `SolutionAdapter` manages
+code-object loading and kernel launch.  The function translates the
+`RocblasltContractionProblem`
 into a TensileLite `ContractionProblemGemm`, looks up the best solution
 (via `getBestSolutions()` which calls `library->findTopSolutions()`), and
 calls `solution->solve()` to produce a list of kernel invocations.
@@ -96,19 +102,18 @@ hipBLASLt has two backends for kernel dispatch.
 |---------------|--------------------------|--------------------------|
 | Kernels       | Precompiled `.co` files  | JIT-compiled at runtime  |
 | Default usage | All standard GEMM        | Block-scaled GEMM        |
-| Selection     | Logic file lookup        | Origami performance model|
+| Selection     | Logic file lookup        | Origami analytical model |
 | First-call    | Loads code object on use | JIT compiles kernel      |
 | Caching       | Loaded once, reused      | Cached after first JIT   |
 
 TensileLite is the default path for all GEMM operations.  RocRoller activates
-automatically when the problem uses block scaling (`ScalingFormat::Block_*` on
-either the A or B scale type), or when the application forces it on via a
-handle flag (`handle->useRocRoller == 1`).  The decision is made by
-`useRocRoller()` in `tensile_host.cpp`.  One exception: FP4 A
-(`HIP_R_4F_E2M1`) + FP4 B with the pre-swizzled 32x8 scale layout
-(`Block_32_UE8M0_32_8_EXT` on both A and B) falls back to TensileLite even
-when RocRoller would otherwise be selected, because TensileLite has optimized
-kernels for that specific format.
+automatically when the problem uses block scaling (per-tile scale factors
+rather than one per tensor or per row, indicated by `ScalingFormat::Block_*`
+on the A or B scale type), or when the application forces it on via a handle
+flag (`handle->useRocRoller == 1`).  The decision is made by `useRocRoller()`
+in `tensile_host.cpp`.  One exception: when both A and B are FP4 with a
+pre-swizzled block-scale layout, TensileLite is used instead because it has
+hand-optimized kernels for that format.
 
 
 ## 4. How solutions are selected `[Essentials]`
@@ -130,12 +135,13 @@ cascade:
 ```
 Library tree
 └── Hardware layer (which GPU?)
-    ├── gfx950_id75a3 (exact chip ID)  ← preferred
-    └── gfx950 (generic architecture)  ← fallback if no exact match
+    ├── gfx950_id75a3 (exact chip + PCI device ID)  ← preferred
+    └── gfx950 (generic architecture)               ← fallback
         └── Problem type (data types, transpose, features)
-            ├── Equality    ← checked first (exact dimension match)
-            ├── GridBased   ← checked next (heuristic)
-            └── FreeSize    ← checked last
+            ├── Equality       ← exact dimension match
+            ├── GridBased      ← heuristic interpolation
+            ├── Range          ← range-based lookup
+            └── FreeSize       ← any size (last resort)
 ```
 
 The selection API maps user-facing calls to internal library lookups:
@@ -147,12 +153,13 @@ The selection API maps user-facing calls to internal library lookups:
 | (no algo at dispatch) | `getBestSolutions()`   | Single best solution  |
 
 The priority cascade means the library first tries to find a solution tuned
-for the exact chip ID, then falls back to the generic architecture.  Within
-each architecture node, exact dimension matches (Equality) are preferred
-because they encode benchmark-derived decisions for specific M/N/K values.
-When no exact match exists, the GridBased heuristic interpolates from nearby
-data points.  FreeSize solutions are the last resort -- they work for any
-dimensions but are not tuned for any specific size.
+for the exact chip (identified by PCI device ID), then falls back to the
+generic architecture.  Within each architecture node, Equality entries
+(benchmark-derived decisions for specific M/N/K values) are checked first.
+If no exact match exists, GridBased heuristics interpolate from nearby data
+points.  Range entries match dimension ranges.  FreeSize solutions are the
+last resort -- they work for any dimensions but are not tuned for any
+specific size.
 
 In practice, most users never need to tune manually.  `algoGetHeuristic()`
 returns solutions ranked by expected performance, and the top result is
@@ -174,7 +181,8 @@ and workflow map one-to-one.  Use the **C++ Extension API** for new code that
 targets ROCm exclusively -- it wraps the descriptor boilerplate into classes
 and provides grouped-GEMM support.  Use **Extension Operations** for
 standalone non-GEMM kernels that do not go through TensileLite.  See
-Chapter 5 for full API details and usage examples.
+[Chapter 5: API Guide](05-api-guide.md) for full API details and usage
+examples.
 
 
 ## 6. Key directory map `[Essentials]`
