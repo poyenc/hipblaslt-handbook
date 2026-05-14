@@ -35,7 +35,7 @@ App          hipblaslt.cpp    rocblaslt_mat.cpp   tensile_host.cpp    GPU
 **tensile_host.cpp** -- The backend dispatch layer. `runContractionProblem()` translates the `RocblasltContractionProblem` into a TensileLite `ContractionProblemGemm`, looks up a solution through the library tree, solves the problem to produce kernel invocations, and calls `adapter->launchKernels()` to enqueue the HIP kernel.
 
 **GPU** -- The `SolutionAdapter` (the runtime object that manages code-object
-loading and kernel submission) calls `hipModuleLaunchKernel()` to submit the precompiled code object kernel on the specified HIP stream.
+loading and kernel submission) calls `hipExtModuleLaunchKernel()` to submit the precompiled code object kernel on the specified HIP stream.
 
 ### C++ extension API path
 
@@ -66,7 +66,7 @@ App          Gemm              rocblaslt_mat.cpp   tensile_host.cpp    GPU
 
 **tensile_host.cpp** -- `runKernelFromInvocation()` takes the pre-solved kernel invocation and calls `adapter->launchKernels()` directly, skipping the solution-lookup step that the C API path performs on every call.
 
-**GPU** -- Same as the C API path: `hipModuleLaunchKernel()` submits the kernel.
+**GPU** -- Same as the C API path: `hipExtModuleLaunchKernel()` submits the kernel.
 
 ---
 
@@ -94,7 +94,7 @@ Lazy loading defers code object loading from startup to first use, reducing memo
 
 | Aspect       | Lazy ON (default)         | Lazy OFF                  |
 |--------------|---------------------------|---------------------------|
-| Startup      | Loads metadata only       | Loads all `.co` files     |
+| Startup      | Loads metadata only       | Loads all `.co` (code object) files |
 | First call   | Loads `.co` on first use  | No extra latency          |
 | Memory       | Grows as kernels are used | Peak memory at startup    |
 | Error timing | Missing `.co` at dispatch | Missing `.co` at init     |
@@ -102,7 +102,7 @@ Lazy loading defers code object loading from startup to first use, reducing memo
 
 ### Debugging implications
 
-First-call latency is normal with lazy loading and is not a performance bug -- each kernel's code object is loaded exactly once on its first dispatch, and subsequent calls incur no loading overhead. If you suspect a missing or misconfigured library path, set `HIPBLASLT_TENSILE_LIBPATH` to explicitly point to the directory containing the `.dat` and `.co` files; when info logging is enabled, the host will log the resolved path at initialization.
+First-call latency is normal with lazy loading and is not a performance bug -- each kernel's code object is loaded exactly once on its first dispatch, and subsequent calls incur no loading overhead. If you suspect a missing or misconfigured library path, set `HIPBLASLT_TENSILE_LIBPATH` to explicitly point to the directory containing the `.dat` and `.co` files; when info logging is enabled (`HIPBLASLT_LOG_LEVEL=4`), the host will log the resolved path at initialization.
 
 ---
 
@@ -119,7 +119,7 @@ Add the new enum value, struct field, or function prototype to the appropriate h
 | `hipblaslt.h` | C API functions, opaque handle types, enums for epilogue/attributes |
 | `hipblaslt-ext.hpp` | C++ extension classes (`Gemm`, `GroupedGemm`, `GemmEpilogue`, etc.) |
 | `hipblaslt-ext-op.h` | ExtOp kernels (softmax, layernorm, amax) |
-| `hipblaslt-types.h` | Shared type definitions, `hipblasLtEpilogue_t`, pointer modes |
+| `hipblaslt-types.h` | Floating-point type aliases (`hipblasLtHalf`, etc.) and custom data format constants |
 
 ### Step 2: hipblaslt implementation
 
@@ -132,7 +132,7 @@ Wire the new feature through the API implementation layer:
 
 Update the internal types that carry the new information through the backend:
 
-- `library/src/amd_detail/rocblaslt/include/rocblaslt-types.h` -- add the field to `rocblaslt_matmul_desc_struct` or the relevant internal struct.
+- `library/src/amd_detail/rocblaslt/src/include/handle.h` -- add the field to `_rocblaslt_matmul_desc` (the matmul descriptor struct) or the relevant internal struct. Note: `rocblaslt-types.h` only contains a forward-declaration typedef.
 - `library/src/amd_detail/rocblaslt/include/rocblaslt-auxiliary.h` -- declare the new rocblaslt-level function if adding a C API entry point.
 - `library/src/amd_detail/rocblaslt/src/rocblaslt_auxiliary.cpp` -- implement attribute get/set and `construct_rocblaslt_problem()` plumbing.
 
