@@ -371,7 +371,6 @@ rocisa is the Python/C++ ISA assembler module used by TensileLite's code generat
 
 ```bash
 cd tensilelite
-pip3 install invoke   # if not already installed
 invoke rocisa
 ```
 
@@ -400,7 +399,7 @@ Tensile/bin/Tensile Tensile/Tests/common/exception/<test>.yaml tensile-out
 
 ```bash
 cd tensilelite
-pip install tox   # not included in the root requirements.txt
+pip install -r requirements.txt   # installs tox and other TensileLite dev dependencies
 
 # Full common test suite
 tox -e py3 -- Tensile/Tests -m common
