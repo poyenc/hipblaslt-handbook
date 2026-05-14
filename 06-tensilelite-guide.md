@@ -18,7 +18,10 @@ Problem description (YAML)
   Code generation (Python)          -- Tensile/ Python modules
         |
         v
-  Assembly / source kernels         -- GPU ISA via rocisa
+  Assembly IR (in-memory)           -- rocisa register/instruction primitives
+        |
+        v
+  Optimized assembly (.s)           -- stinkytofu (optional, ScheduleIterAlg=4)
         |
         v
   Assembled + linked code objects   -- amdclang assembler + linker
@@ -43,10 +46,11 @@ This section defines concepts specific to TensileLite that build on the
 | Concept | What it is | Where it lives |
 |---------|------------|----------------|
 | Custom Kernel | A hand-written assembly kernel (`.s` file) referenced by name in a logic file's solution entry. | `CustomKernels/` |
-| rocisa | Python/C++ ISA code generation module built with nanobind (a lightweight Python/C++ binding library). Provides register/instruction primitives for kernel writers. | `rocisa/` |
+| rocisa | Python/C++ ISA code generation module built with nanobind (a lightweight Python/C++ binding library). Provides register/instruction primitives for kernel writers. Includes the stinkytofu optimizer (see below). | `rocisa/` |
+| stinkytofu | LLVM-inspired pass-based IR optimizer compiled into `_rocisa.so`. When activated (`ScheduleIterAlg=4` on supported architectures), converts rocisa IR to its own IR for DAG scheduling, wait-count insertion, and dead-code elimination. | `shared/stinkytofu/` |
 | Selection Strategy | How a logic file's size-to-solution mapping works. Options: Equality (exact match), GridBased (heuristic), Range (range-based), FreeSize (any size), Prediction (see Origami below). | Logic file element 11 |
 | Origami | A shared library (`shared/origami/`) that analytically predicts optimal GEMM tile configurations (tile size, matrix instruction, etc.) without benchmark data. Logic files under `Origami/` directories use the element 11 strategy value `Prediction`. Unlike Equality and GridBased which rely on offline benchmarking, Origami predicts performance from hardware parameters, making it useful for new architectures or untested problem shapes. | `shared/origami/` |
-| Code Generation Pipeline | The offline Python pipeline that turns problem descriptions into assembly source and compiled code objects. | `Tensile/` |
+| Code Generation Pipeline | The offline Python pipeline that turns problem descriptions into rocisa IR, optionally optimizes it via stinkytofu, and assembles the result into compiled code objects. | `Tensile/` |
 
 ### Code generation lifecycle
 
@@ -55,7 +59,13 @@ This section defines concepts specific to TensileLite that build on the
 │ Problem description    │
 │ (YAML)                 │
 └───────────┬────────────┘
-            │ Tensile Python toolchain generates
+            │ KernelWriter builds rocisa IR
+            v
+┌────────────────────────┐
+│ In-memory assembly IR  │
+│ (rocisa Module)        │
+└───────────┬────────────┘
+            │ rocIsaPass + optional stinkytofu
             v
 ┌────────────────────────┐
 │ Assembly source (.s)   │
@@ -109,7 +119,7 @@ tensilelite/
   requirements.txt          Python dependencies
   CMakeLists.txt            CMake build for host lib + client
 
-  rocisa/                   ISA assembler module (Python/C++ via nanobind)
+  rocisa/                   ISA code generation module (Python/C++ via nanobind)
     rocisa/                 Python package source
     test/                   rocisa unit tests
     docs/                   rocisa documentation
@@ -417,7 +427,8 @@ architecture. `Common/ValidParameters.py` defines the allowed ranges.
 ### Stage 3: Kernel code generation
 
 `KernelWriterAssembly.py` is the main code generator. It uses `rocisa` to
-emit GPU ISA assembly instructions (CDNA and RDNA). The generation is modular:
+build an in-memory IR tree of GPU ISA instructions (CDNA and RDNA), not raw
+assembly text. The generation is modular:
 
 - **Components/** contains reusable assembly-generation modules. Each
   component handles one aspect of the kernel:
@@ -429,11 +440,22 @@ emit GPU ISA assembly instructions (CDNA and RDNA). The generation is modular:
   - `PersistentLoop.py` -- persistent kernel loops
   - `Signature.py` -- kernel argument layout
 
-- `KernelWriterModules.py` orchestrates these components into a complete
-  kernel.
+- `KernelWriterModules.py` provides helper functions (e.g., `wait()`,
+  `tdmWait()`) used during IR construction.
 
-- `Toolchain/Assembly.py` drives the assembler to convert `.s` files into
-  `.o` object files and link them into `.co` code objects.
+- `KernelWriter.kernelBody()` finalizes the IR tree by running two
+  post-processing stages:
+  1. **rocIsaPass** -- a lightweight rocisa-native pass (duplicate removal,
+     delay-ALU insertion, cycle counting).
+  2. **stinkytofu** (optional) -- when `ScheduleIterAlg=4` and the target
+     architecture is supported, converts the rocisa IR to stinkytofu's own
+     IR, runs DAG scheduling, wait-count optimization, and dead-code
+     elimination, then emits the final assembly text.
+
+- `Toolchain/Component.py` (`Assembler`) invokes amdclang to convert `.s`
+  files into `.o` object files. `Toolchain/Assembly.py` links `.o` files
+  into `.co` code objects and compresses them. Both steps are orchestrated
+  by `TensileCreateLibrary/Run.py`.
 
 ### Stage 4: Library creation
 

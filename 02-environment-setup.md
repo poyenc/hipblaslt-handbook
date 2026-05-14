@@ -56,7 +56,7 @@ hipBLASLt lives at `projects/hipblaslt/` in the monorepo, but its build referenc
 | Monorepo path | Used by | Disable option |
 |---|---|---|
 | `shared/origami` | Host library (Stream-K) + rocisa | None — always required |
-| `shared/stinkytofu` | rocisa (ISA assembler for TensileLite) | None — always required |
+| `shared/stinkytofu` | rocisa (assembly optimizer for TensileLite) | None — always required |
 | `shared/mxdatagenerator` | Client tests/benchmarks (MX format data) | `-DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF` |
 | `shared/rocroller` | Host library (JIT kernels) | `-DHIPBLASLT_ENABLE_ROCROLLER=OFF` |
 
@@ -367,7 +367,7 @@ If you are working on TensileLite (kernel code generation, logic files, or the C
 
 ### Build rocisa (required once)
 
-rocisa is the Python/C++ ISA assembler module used by TensileLite's code generator. Build it once after cloning (or after `pyproject.toml` changes):
+rocisa is the Python/C++ ISA code generation module used by TensileLite. Build it once after cloning (or after `pyproject.toml` changes):
 
 ```bash
 cd tensilelite
