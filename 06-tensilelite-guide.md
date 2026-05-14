@@ -457,6 +457,35 @@ assembly text. The generation is modular:
   into `.co` code objects and compresses them. Both steps are orchestrated
   by `TensileCreateLibrary/Run.py`.
 
+#### Instruction scheduling (`ScheduleIterAlg`)
+
+Instruction scheduling -- interleaving memory operations between MFMAs to
+hide latency -- happens *during* IR construction, not as a separate pass
+(except for stinkytofu). The `ScheduleIterAlg` solution parameter (SIA)
+selects the strategy. The default is SIA=3.
+
+| SIA | Strategy | What it does |
+|-----|----------|--------------|
+| 0 | Sequential | No scheduling. Global reads, local reads, local writes, MACs emitted in fixed order. |
+| 1 | Half-read | Simple interleaving: emits half the local reads, then global reads, then the rest. |
+| 2 | Two-workgroup | Priority-based. While WG0 computes, WG1 fetches and vice-versa. Requires `CUOccupancy >= 2`. |
+| 3 | Full MFMA-interleaved | Interleaves global reads, local writes, local reads, and pack instructions between individual MFMAs. Controlled by `GlobalReadPerMfma` and `LocalWritePerMfma`. This is the default. |
+| 4 | stinkytofu | Remapped to SIA=0 (no scheduling during generation), then the entire IR is handed to stinkytofu's DAG scheduler for optimization. |
+
+SIA 0--3 are implemented as `Components/SIA.py` classes (SIA0, SIA1, SIA2,
+SIA3) and called via `makeSchedule()` during IR construction in
+`KernelWriter.py`. SIA=4 is remapped at solution setup time
+(`SolutionStructs/Solution.py`): the kernel is generated with SIA=0, and the
+`_StinkyTofuOptLevel` flag triggers stinkytofu after `rocIsaPass`.
+
+Note: `rocIsaPass` does **no** instruction scheduling -- only delay-ALU
+insertion, duplicate removal, and cycle estimation.
+
+A separate **subtile path** (`UseSubtileImpl=True`) bypasses the SIA
+system entirely and uses its own `LogicalScheduler` +
+`InstructionScheduler` (`Components/Subtile/`) for constraint-based
+slot placement between MFMAs.
+
 ### Stage 4: Library creation
 
 `TensileCreateLibrary/Run.py` orchestrates the full build:
