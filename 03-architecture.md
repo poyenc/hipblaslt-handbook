@@ -103,7 +103,7 @@ hipBLASLt has two backends for kernel dispatch.
 |---------------|--------------------------|--------------------------|
 | Kernels       | Precompiled `.co` files  | JIT-compiled at runtime  |
 | Default usage | All standard GEMM        | Block-scaled GEMM        |
-| Selection     | Logic file lookup        | Origami (analytical cost model) |
+| Selection     | Logic file lookup        | Origami analytical cost model   |
 | First-call    | Loads code object on use | JIT compiles kernel      |
 | Caching       | Loaded once, reused      | Cached after first JIT   |
 

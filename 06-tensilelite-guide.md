@@ -44,7 +44,8 @@ This section defines concepts specific to TensileLite that build on the
 |---------|------------|----------------|
 | Custom Kernel | A hand-written assembly kernel (`.s` file) referenced by name in a logic file's solution entry. | `CustomKernels/` |
 | rocisa | Python/C++ ISA code generation module built with nanobind (a lightweight Python/C++ binding library). Provides register/instruction primitives for kernel writers. | `rocisa/` |
-| Selection Strategy | How a logic file's size-to-solution mapping works. Options: Equality (exact match), GridBased (heuristic), Range (range-based), FreeSize (any size), Prediction (analytical cost model; stored in `Origami/` directories). | Logic file element 11 |
+| Selection Strategy | How a logic file's size-to-solution mapping works. Options: Equality (exact match), GridBased (heuristic), Range (range-based), FreeSize (any size), Prediction (see Origami below). | Logic file element 11 |
+| Origami | A shared library (`shared/origami/`) that analytically predicts optimal GEMM tile configurations (tile size, matrix instruction, etc.) without benchmark data. Logic files under `Origami/` directories use the element 11 strategy value `Prediction`. Unlike Equality and GridBased which rely on offline benchmarking, Origami predicts performance from hardware parameters, making it useful for new architectures or untested problem shapes. | `shared/origami/` |
 | Code Generation Pipeline | The offline Python pipeline that turns problem descriptions into assembly source and compiled code objects. | `Tensile/` |
 
 ### Code generation lifecycle
