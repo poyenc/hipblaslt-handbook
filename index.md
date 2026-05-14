@@ -23,6 +23,7 @@ If you're new to HIP/CUDA or BLAS libraries, follow this path. Read `[Essentials
 6. [TensileLite Guide](06-tensilelite-guide.md) — read the overview sections only
 7. [Testing and Benchmarking](09-testing-and-benchmarking.md) — run tests and benchmarks
 8. [Troubleshooting and Reference](10-troubleshooting-and-reference.md) — error fixes, env vars, glossary
+9. [Reference Appendix](11-reference-appendix.md) — source-level detail (optional, for deep dives)
 
 ## Senior Kernel Developer Path (half a day)
 
@@ -36,6 +37,7 @@ If you're experienced with HIP kernel development but new to hipBLASLt, follow t
 6. [Daily Workflows](08-daily-workflows.md) — task-oriented recipes for common work
 7. [Testing and Benchmarking](09-testing-and-benchmarking.md) — test infrastructure and benchmarking
 8. [Troubleshooting and Reference](10-troubleshooting-and-reference.md) — debugging tools, env vars, glossary
+9. [Reference Appendix](11-reference-appendix.md) — detailed call chains, class hierarchies, internals
 
 ## External Resources
 
