@@ -322,17 +322,23 @@ This is a large mapping that fully specifies the GEMM variant. Key fields:
 | `HighPrecisionAccumulate` | `true` | Use higher precision in MAC |
 | `TransposeA` | `0` | A is not transposed (0 = N, 1 = T) |
 | `TransposeB` | `1` | B is transposed (0 = N, 1 = T) |
-| `IndexAssignmentsA` | `[0, 3, 2]` | How A indices map to tensor dims |
-| `IndexAssignmentsB` | `[1, 3, 2]` | How B indices map to tensor dims |
-| `IndicesFree` | `[0, 1]` | Free (output) indices |
-| `IndicesSummation` | `[3]` | Summation (contraction) indices |
-| `IndicesBatch` | `[2]` | Batch indices |
+| `IndexAssignmentsA` | `[0, 3, 2]` | A's dimensions in index order: M(0), K(3), Batch(2) |
+| `IndexAssignmentsB` | `[1, 3, 2]` | B's dimensions in index order: N(1), K(3), Batch(2) |
+| `IndicesFree` | `[0, 1]` | Free (output) indices: index 0 = M, index 1 = N |
+| `IndicesSummation` | `[3]` | Summation (contraction) index: index 3 = K |
+| `IndicesBatch` | `[2]` | Batch index: index 2 = batch dimension |
 | `UseBias` | `1` | Bias vector enabled |
 | `UseScaleAlphaVec` | `1` | Per-element alpha scaling |
 | `Activation` | `true` | Fused activation |
 | `ActivationType` | `hipblaslt_all` | Activation function type |
 | `Batched` | `true` | Batched GEMM |
 | `StridedBatched` | `true` | Strided batched mode |
+
+The index numbering scheme: `IndicesFree`, `IndicesSummation`, and
+`IndicesBatch` assign a numeric index to each GEMM dimension.  In this
+file, index 0 = M (rows of C), index 1 = N (columns of C), index 2 =
+batch, and index 3 = K (contraction).  `IndexAssignmentsA/B` then list
+which indices each input tensor uses, defining its memory layout.
 
 **Element 5 -- Solution list:**
 
