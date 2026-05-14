@@ -34,8 +34,7 @@ Located in `library/src/amd_detail/rocblaslt/src/`.
 | `handle.cpp` | Internal handle state. |
 | `UserDrivenTuningParser.cpp` | Parses user-driven tuning override files. |
 
-The `include/` subdirectory holds internal headers: `rocblaslt.h`, `tensile_host.hpp`,
-`handle.h`, `rocblaslt_mat_utils.hpp`, etc.
+The public header `rocblaslt.h` lives in `rocblaslt/include/`, while internal headers (`tensile_host.hpp`, `handle.h`, `rocblaslt_mat_utils.hpp`, etc.) live in `rocblaslt/src/include/`.
 
 ---
 
@@ -76,14 +75,14 @@ rocblaslt_matmul()         -- line 683
 runContractionProblem()    -- line 2868
   |-- #ifdef HIPBLASLT_USE_ROCROLLER
   |     |-- useRocRoller(handle, prob) ?
-  |     \-- YES: runRocRollerContractionProblem(handle, algo, prob)   [see S5 below]
+  |     \-- YES: runRocRollerContractionProblem(handle, algo, prob)   [see Section 5: RocRoller Dispatch Details]
   |
   |-- get_library_and_adapter(&library, &deviceProp, &hardware)
-  |     \-- initializes TensileHost singleton on first call (line 2624)
+  |     \-- initializes TensileHost singleton on first call (line 2623)
   |
   |-- if algo == nullptr:
   |     \-- getBestSolutions(prob, ..., 1, &heuristicResult, ...)
-  |         \-- see S3 below for the full algorithm-selection flow
+  |         \-- see Section 3: Algorithm Selection Internals for the full algorithm-selection flow
   |
   |-- updateTensileProblem(prob, data->problem)   -- line 1846, translates RocblasltContractionProblem to TensileLite::ContractionProblemGemm
   |-- data->inputs = GetTensileInputs(prob)       -- line 2110, maps pointers/scalars to Tensile input struct
@@ -150,7 +149,7 @@ Both paths converge on `getBestSolutions()` in `tensile_host.cpp` (line 3910).
 ```
 getBestSolutions()  -- tensile_host.cpp, line 3910
   |-- if HIPBLASLT_USE_ROCROLLER && useRocRoller(handle, prob):
-  |     \-- getRocRollerBestSolutions()   [see S5 below]
+  |     \-- getRocRollerBestSolutions()   [see Section 5: RocRoller Dispatch Details]
   |
   |-- get_library_and_adapter(&library, &deviceProp, &hardware)
   |-- updateTensileProblem(prob, data->problem)
@@ -200,7 +199,7 @@ The heuristic path supports a file-based override mechanism. When the environmen
 
 ## 4. TensileLite Solution Library Class Hierarchy
 
-> For a conceptual overview, see [Chapter 3, Section 4](03-architecture.md#4-how-solutions-are-selected-essentials).
+> For a conceptual overview, see [Chapter 3, Section 4](03-architecture.md#4-how-solutions-are-selected-essentials) and [Chapter 6, Section 1](06-tensilelite-guide.md#1-what-tensilelite-does-essentials).
 
 The TensileLite solution library is implemented as a tree of template classes
 that progressively narrow the solution search space. The key headers live in
@@ -445,7 +444,7 @@ The `TensileHost::initialize()` function (in `tensile_host.cpp`, line 2420) beha
 **Lazy loading ON (`ROCBLASLT_TENSILE_LAZY_LOAD=1`)**:
 
 - Loads the library metadata from `TensileLibrary_lazy_<arch>.dat` (line 2523). This file contains the solution library tree and problem predicates but does **not** embed the kernel binaries.
-- Code object files are **not** loaded at startup. The `SolutionAdapter` is initialized with `adapter.initializeLazyLoading(processor, path)` (line 2602), which records the path for later on-demand loading.
+- Code object files are **not** loaded at startup. The path is recorded for later on-demand loading.
 - The `TensileHost` maintains per-architecture maps (`m_devicePropMap`, `m_hardwareMap`, `m_deviceSet` at lines 2335-2337) to support multi-GPU systems where different architectures may be present.
 - When a kernel is first dispatched, `SolutionAdapter` calls `hipModuleLoadData()` to load just that specific code object into GPU memory.
 
@@ -454,6 +453,8 @@ The `TensileHost::initialize()` function (in `tensile_host.cpp`, line 2420) beha
 - Loads all `.co` files matching the current architecture from the library directory at startup (lines 2482-2503). Each file is loaded via `adapter.loadCodeObjectFile()`.
 - Loads the full library metadata from `TensileLibrary_<arch>.dat` (no `_lazy_` prefix, line 2535).
 - Uses a single `m_deviceProp` and `m_hardware` (lines 2339-2340) since all devices must be the same architecture.
+
+**In both modes**, `adapter.initializeLazyLoading(processor, path)` (line 2602) is called unconditionally -- it runs outside the `#if ROCBLASLT_TENSILE_LAZY_LOAD` guards. The call records the library path on the adapter regardless of whether lazy loading will actually defer code object loading.
 
 ### Memory and startup impact
 
