@@ -16,16 +16,22 @@ build time, and consumed by a gtest binary at runtime.
        |
        |--- include: smoke_gtest.yaml
        |       |--- include: hipblaslt_common.yaml   (precision anchors, defaults)
+       |       |--- include: matmul_common.yaml      (matrix size ranges)
        |       '--- include: known_bugs.yaml
        |
        |--- include: matmul_gtest.yaml
        |       |--- include: hipblaslt_common.yaml
-       |       |--- include: matmul_common.yaml      (matrix size ranges)
+       |       |--- include: matmul_common.yaml
        |       '--- include: known_bugs.yaml
        |
        |--- include: auxiliary_gtest.yaml
+       |       |--- include: hipblaslt_common.yaml
+       |       |--- include: matmul_common.yaml
+       |       '--- include: known_bugs.yaml
        |
        '--- include: rocroller_gtest.yaml
+               |--- include: hipblaslt_common.yaml
+               '--- include: matmul_common.yaml
        |
        v
  hipblaslt_gentest.py               Python generator (needs PyYAML)
@@ -460,7 +466,7 @@ Tensile/bin/Tensile Tensile/Tests/common/exception/<test>.yaml tensile-out
 With a custom client build location, pass `--prebuilt-client`:
 
 ```bash
-Tensile/bin/Tensile Tensile/Tests/pre_checkin/<test>.yaml tensile-out \
+Tensile/bin/Tensile Tensile/Tests/common/gemm/<test>.yaml tensile-out \
     --prebuilt-client=my-build/tensilelite/client/tensilelite-client
 ```
 

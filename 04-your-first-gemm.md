@@ -209,10 +209,10 @@ After the build completes, run the sample:
 
 ```bash
 # If you used invoke:
-./build/release/clients/sample_hipblaslt_gemm_ext
+./build/release/clients/samples/01_hipblaslt_gemm_ext/sample_hipblaslt_gemm_ext
 
 # If you used CMake presets or CMake directly:
-./build/clients/sample_hipblaslt_gemm_ext
+./build/clients/samples/01_hipblaslt_gemm_ext/sample_hipblaslt_gemm_ext
 
 # Note: The `hipblaslt-clients` preset does not build samples
 # (HIPBLASLT_ENABLE_SAMPLES=OFF). Use `cmake --preset default:release`
