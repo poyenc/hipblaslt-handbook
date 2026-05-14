@@ -340,6 +340,13 @@ file, index 0 = M (rows of C), index 1 = N (columns of C), index 2 =
 batch, and index 3 = K (contraction).  `IndexAssignmentsA/B` then list
 which indices each input tensor uses, defining its memory layout.
 
+`TransposeA/B` and `IndexAssignmentsA/B` encode the same information.
+When `TransposeA = 0` (not transposed), M comes first in A's layout:
+`IndexAssignmentsA = [0, 3, 2]` (M, K, Batch).  When `TransposeA = 1`
+(transposed), K comes first: `IndexAssignmentsA = [3, 0, 2]` (K, M,
+Batch).  The filename encodes this too: `Ailk` = A indices are i(M),
+l(K), k(Batch); `Alik` = l(K), i(M), k(Batch).
+
 **Element 5 -- Solution list:**
 
 An array of solution mappings. Each solution defines the kernel's tuning
