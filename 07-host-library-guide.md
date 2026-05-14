@@ -31,9 +31,14 @@ App          hipblaslt.cpp    rocblaslt_mat.cpp   tensile_host.cpp    GPU
 
 **tensile_host.cpp** -- The backend dispatch layer. `runContractionProblem()` translates the `RocblasltContractionProblem` into a TensileLite `ContractionProblemGemm`, looks up a solution through the library tree, solves the problem to produce kernel invocations, and calls `adapter->launchKernels()` to enqueue the HIP kernel.
 
-**GPU** -- The `SolutionAdapter` calls `hipModuleLaunchKernel()` to submit the precompiled code object kernel on the specified HIP stream.
+**GPU** -- The `SolutionAdapter` (the runtime object that manages code-object
+loading and kernel submission) calls `hipModuleLaunchKernel()` to submit the precompiled code object kernel on the specified HIP stream.
 
 ### C++ extension API path
+
+The ext API separates problem setup (`initialize`) from execution (`run`)
+so that repeated dispatches of the same problem shape skip the
+solution-selection step entirely.
 
 ```
 App          Gemm              rocblaslt_mat.cpp   tensile_host.cpp    GPU
@@ -130,7 +135,7 @@ Update the internal types that carry the new information through the backend:
 
 ### Step 4: Problem representation
 
-Update `RocblasltContractionProblem` (in `tensile_host.cpp`) to carry the new field. Then update:
+Update `RocblasltContractionProblem` (defined in `rocblaslt-types.h`) to carry the new field. Then update:
 
 - `updateTensileProblem()` -- translate the field into the Tensile problem representation.
 - `GetTensileInputs()` -- if the feature adds new input pointers.
