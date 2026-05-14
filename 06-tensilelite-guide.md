@@ -260,19 +260,19 @@ gfx950/
 
 Each logic file is a YAML list with a fixed element structure:
 
-| Element | Contents                  | Key fields                                |
-|---------|---------------------------|-------------------------------------------|
-| 0       | Version header            | `MinimumRequiredVersion`                  |
-| 1       | Scheduling model          | Architecture name (e.g., `gfx950`)        |
-| 2       | Architecture              | Architecture name                         |
-| 3       | Device ID filter          | `[Device 75a0]`                           |
-| 4       | Problem type description  | Data types, transpose, features           |
-| 5       | Solution list             | Kernel tuning parameters                  |
-| 6       | Index order               | Dimension traversal order for Element 7 lookup |
-| 7       | Size-to-solution mapping  | Maps dimensions to solution indices       |
-| 8-9     | Reserved                  | `null`                                    |
-| 10      | Performance metric        | `DeviceEfficiency`                        |
-| 11      | Selection strategy        | `GridBased`, `Equality`, `Range`, `Prediction`, etc. |
+| Element | Contents | What it holds | Example |
+|---------|----------|---------------|---------|
+| 0 | Version header | Minimum logic file format version required to parse this file. | `{MinimumRequiredVersion: 5.0.0}` |
+| 1 | Scheduling model | GPU architecture name, used to select the instruction scheduling model. | `gfx950` |
+| 2 | Architecture | Target GPU architecture. Usually same as Element 1. | `gfx950` |
+| 3 | Device ID filter | PCI device IDs this file applies to. Limits solutions to specific product SKUs. | `[Device 75a0]` |
+| 4 | Problem type | Full GEMM variant specification: data types (`DataType`, `DestDataType`, `ComputeDataType`), transpose modes (`TransposeA/B`), index assignments (`IndexAssignmentsA/B`, `IndicesFree/Summation/Batch`), and feature flags (`UseBias`, `Activation`, `UseScaleAlphaVec`, etc.). | See walkthrough below |
+| 5 | Solution list | Array of kernel definitions. Each solution specifies tuning parameters: tile size (`MacroTile0/1`), unroll depth (`DepthU`), matrix instruction (`MatrixInstruction`), work-group shape (`WorkGroup`), prefetch depths, GSU settings, etc. Each has a unique `SolutionIndex` (local to this file). | See walkthrough below |
+| 6 | Index order | Dimension traversal order for the Element 7 lookup tree. Lists dimension indices (defined in Element 4) in the order they are checked. | `[2, 3, 0, 1]` = Batch, K, M, N |
+| 7 | Size-to-solution mapping | Maps problem dimensions to solutions. Each entry is a pair: dimension bounds (8-element tuple of sizes/strides) and `[SolutionIndex, efficiency]`. Multiple entries can map to the same solution. | `[[4607, 1335, ...], [0, 19321.7]]` |
+| 8-9 | Reserved | Unused, always null. | `null` |
+| 10 | Performance metric | How solution quality is measured. | `DeviceEfficiency` |
+| 11 | Selection strategy | How the size-to-solution mapping is queried at runtime. | `GridBased`, `Equality`, `Range`, `Prediction` |
 
 ### Walkthrough of a real logic file
 
