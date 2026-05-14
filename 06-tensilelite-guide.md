@@ -2,10 +2,12 @@
 
 ## 1. What TensileLite Does `[Essentials]`
 
+> For terminology used in this chapter (Problem, Solution, Logic File, etc.), see [Chapter 3: Core Concepts](03-architecture.md#1-core-concepts-essentials).
+
 TensileLite is the kernel generation and selection engine inside hipBLASLt. It
-produces highly optimized assembly GEMM kernels for AMD GPUs and packages them
-as loadable code objects (`.co` files). At runtime, the TensileLite host
-library selects the best kernel for a given problem and dispatches it.
+produces optimized assembly GEMM kernels for AMD GPUs and packages them as
+loadable code objects (`.co` files). At runtime the host library selects the
+best kernel for a given problem and dispatches it.
 
 **Pipeline at a glance:**
 
@@ -31,50 +33,70 @@ Problem description (YAML)
   hipBLASLt runtime dispatch        -- loads .co, launches kernels
 ```
 
-The Python side handles kernel authoring, benchmarking, and logic-file
-management. The C++ side handles loading code objects at runtime and selecting
-the right kernel for each GEMM call.
-
 ---
 
-## 2. Key Concepts `[Essentials]`
+## 2. TensileLite-Specific Concepts `[Essentials]`
 
-**Problem** -- A specific GEMM configuration: data types, transpose modes,
-matrix dimensions, batch count, and optional features (bias, activation,
-scaling). In the YAML files this is encoded as `OperationType: GEMM` plus
-fields like `DataType`, `TransposeA`, `TransposeB`, `UseBias`,
-`UseScaleAlphaVec`, etc.
+This section defines concepts specific to TensileLite that build on the
+[core glossary in Chapter 3](03-architecture.md#1-core-concepts-essentials).
 
-**Solution** -- A concrete kernel implementation that can execute a problem.
-Each solution is a set of tuning parameters (macro-tile size, unroll depth,
-prefetch strategy, vector widths, etc.) plus the generated assembly code.
-Solutions are identified by a `SolutionIndex` and a human-readable
-`SolutionNameMin`.
+| Concept              | What it is                                                   | Where it lives      |
+|----------------------|--------------------------------------------------------------|----------------------|
+| Custom Kernel        | A hand-written assembly kernel (`.s` file) referenced by     | `CustomKernels/`     |
+|                      | name in a logic file's solution entry                        |                      |
+| rocisa               | Python/C++ ISA code generation module built with nanobind.   | `rocisa/`            |
+|                      | Provides register/instruction primitives for kernel writers  |                      |
+| Selection Strategy   | How a logic file's size-to-solution mapping works.           | Logic file           |
+|                      | Options: Equality (exact match), GridBased (heuristic),      | element 11           |
+|                      | Range (range-based), Origami (analytical model)              |                      |
+| Code Generation      | The offline Python pipeline that turns problem descriptions  | `Tensile/`           |
+| Pipeline             | into assembly source -> compiled code objects                |                      |
 
-**Logic file** -- A YAML file that maps problems to solutions. It contains the
-problem-type description, one or more solution definitions, and a mapping
-table that tells the host library which solution to pick based on problem
-dimensions. Logic files live under
-`library/src/amd_detail/rocblaslt/src/Tensile/Logic/asm_full/<arch>/`.
+### Code generation lifecycle
 
-**Code object** -- A compiled `.co` (ELF) file containing one or more GPU
-kernels for a specific ISA target (e.g., `gfx950`). Code objects are
-assembled from generated `.s` files using the ROCm toolchain.
+```
+┌────────────────────────┐
+│ Problem description    │
+│ (YAML)                 │
+└───────────┬────────────┘
+            │ Tensile Python toolchain generates
+            v
+┌────────────────────────┐
+│ Assembly source (.s)   │
+└───────────┬────────────┘
+            │ amdclang assembles + links
+            v
+┌────────────────────────┐
+│ Code objects (.co)     │
+└───────────┬────────────┘
+            │ TensileCreateLibrary packages with logic
+            v
+┌────────────────────────┐
+│ Logic files (YAML)     │
+└───────────┬────────────┘
+            │ serialized to .dat at build time
+            v
+┌────────────────────────┐
+│ .dat bundles (msgpack) │
+└────────────────────────┘
+```
 
-**Kernel vs Solution** -- "Kernel" refers to the GPU function itself (the
-assembly code). "Solution" is the broader concept: the kernel plus all its
-parameter settings, metadata, and the logic that decides when to use it.
-One solution produces exactly one kernel.
+### rocisa
 
-**rocisa** -- A Python/C++ module (`tensilelite/rocisa/`) that provides ROCm
-ISA code generation primitives. TensileLite's `KernelWriterAssembly` uses
-rocisa to emit GPU ISA assembly instructions (CDNA and RDNA). It is built with
-nanobind and installed as an editable pip package via `invoke rocisa`.
+rocisa is a Python/C++ ISA code generator built with nanobind. It provides
+Python bindings to ROCm ISA primitives -- registers, instructions, data
+types -- so kernel writers can construct assembly programs from Python without
+string manipulation. It also contains the stinkytofu C++ layer (typed enums
+for DPP/MFMA modifier fields, etc.). Build or rebuild it from the
+tensilelite root with:
 
-**Custom kernel** -- A hand-written assembly kernel placed in
-`Tensile/CustomKernels/`. Custom kernels are referenced by name in logic
-files via the `CustomKernelName` field in a solution. Metadata can be
-overridden in a `custom.config` section within the assembly file.
+```bash
+invoke rocisa
+```
+
+If the compiled extension is out of date, `import rocisa` raises an
+`ImportError` with a hint listing the modified source files that triggered
+the mismatch.
 
 ---
 
@@ -237,6 +259,22 @@ gfx950/
     Equality/       solutions for another device variant
 ```
 
+Each logic file is a YAML list with a fixed element structure:
+
+| Element | Contents                  | Key fields                                |
+|---------|---------------------------|-------------------------------------------|
+| 0       | Version header            | `MinimumRequiredVersion`                  |
+| 1       | Scheduling model          | Architecture name (e.g., `gfx950`)        |
+| 2       | Architecture              | Architecture name                         |
+| 3       | Device ID filter          | `[Device 75a0]`                           |
+| 4       | Problem type description  | Data types, transpose, features           |
+| 5       | Solution list             | Kernel tuning parameters                  |
+| 6       | Index mapping             | Tensor index roles                        |
+| 7       | Size-to-solution mapping  | Maps dimensions to solution indices       |
+| 8-9     | Reserved                  | `null`                                    |
+| 10      | Performance metric        | `DeviceEfficiency`                        |
+| 11      | Selection strategy        | `GridBased`, `Equality`, `Range`, etc.    |
+
 ### Walkthrough of a real logic file
 
 The file below is `gfx950_Cijk_Ailk_Bjlk_HHS_BH_Bias_Aux_AH_SAV.yaml`
@@ -372,6 +410,28 @@ Selection strategies include `GridBased` (heuristic selection based on problem d
 
 TensileLite transforms a problem description into a GPU kernel through
 several stages. The main Python modules involved:
+
+Key subsystems:
+
+| Directory / file | Purpose |
+|---|---|
+| `KernelWriter.py` | Main entry point: dispatches to specialized kernel writers |
+| `KernelWriterAssembly.py` | Emits GPU ISA assembly (CDNA and RDNA) for GEMM kernels |
+| `KernelWriterBase.py` | Base class for kernel writers |
+| `KernelWriterModules.py` | Composable instruction-sequence modules |
+| `Components/` | Pluggable components: MAC units, local read, global write batch, GSU, etc. |
+| `Common/` | Shared constants, architecture capabilities, data types, global parameters |
+| `Contractions.py` | Contraction problem definition |
+| `BenchmarkStructs.py` | Benchmark configuration parsing |
+| `ClientWriter.py` | Generates C++ client code for validation |
+| `CustomKernels/` | Hand-written kernel templates |
+| `bin/Tensile` | Entry point script for running kernel generation |
+| `Tests/` | pytest test suites (common, unit) |
+
+The toolchain outputs:
+- Assembly source files (.s)
+- Compiled code objects (.co)
+- Logic files (YAML) mapping problem configurations to solutions
 
 ### Stage 1: Problem parsing
 
