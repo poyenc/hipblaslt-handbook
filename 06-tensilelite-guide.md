@@ -40,19 +40,12 @@ Problem description (YAML)
 This section defines concepts specific to TensileLite that build on the
 [core glossary in Chapter 3](03-architecture.md#1-core-concepts-essentials).
 
-| Concept              | What it is                                                   | Where it lives      |
-|----------------------|--------------------------------------------------------------|----------------------|
-| Custom Kernel        | A hand-written assembly kernel (`.s` file) referenced by     | `CustomKernels/`     |
-|                      | name in a logic file's solution entry                        |                      |
-| rocisa               | Python/C++ ISA code generation module built with nanobind    | `rocisa/`            |
-|                      | (a lightweight Python/C++ binding library).                  |                      |
-|                      | Provides register/instruction primitives for kernel writers  |                      |
-| Selection Strategy   | How a logic file's size-to-solution mapping works.           | Logic file           |
-|                      | Options: Equality (exact match), GridBased (heuristic),      | element 11           |
-|                      | Range (range-based), FreeSize (any size), Prediction         |                      |
-|                      | (analytical cost model; stored in `Origami/` directories)    |                      |
-| Code Generation      | The offline Python pipeline that turns problem descriptions  | `Tensile/`           |
-| Pipeline             | into assembly source -> compiled code objects                |                      |
+| Concept | What it is | Where it lives |
+|---------|------------|----------------|
+| Custom Kernel | A hand-written assembly kernel (`.s` file) referenced by name in a logic file's solution entry. | `CustomKernels/` |
+| rocisa | Python/C++ ISA code generation module built with nanobind (a lightweight Python/C++ binding library). Provides register/instruction primitives for kernel writers. | `rocisa/` |
+| Selection Strategy | How a logic file's size-to-solution mapping works. Options: Equality (exact match), GridBased (heuristic), Range (range-based), FreeSize (any size), Prediction (analytical cost model; stored in `Origami/` directories). | Logic file element 11 |
+| Code Generation Pipeline | The offline Python pipeline that turns problem descriptions into assembly source and compiled code objects. | `Tensile/` |
 
 ### Code generation lifecycle
 
