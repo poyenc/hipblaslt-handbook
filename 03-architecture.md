@@ -109,10 +109,11 @@ hipBLASLt has two backends for kernel dispatch.
 
 TensileLite is the default path for all GEMM operations.  RocRoller activates
 automatically when the problem uses block scaling (per-tile scale factors
-rather than one per tensor or per row, indicated by `ScalingFormat::Block_*`
+rather than one per tensor or per row, indicated by
+`ScalingFormat::Block_32_UE8M0` or `Block_32_UE8M0_32_8_EXT`
 on the A or B scale type), or when the application forces it on via a handle
 flag (`handle->useRocRoller == 1`).  The decision is made by `useRocRoller()`
-in `tensile_host.cpp`.  One exception: when both A and B are FP4 with a
+in `tensile_host.cpp`.  One exception: when both A and B are FP4 (4-bit floating-point) with a
 pre-swizzled block-scale layout (data reordered in memory to match the
 GPU's expected access pattern), TensileLite is used instead because it has
 hand-optimized kernels for that format.  For RocRoller internals, see
@@ -132,8 +133,9 @@ organized into a library tree.
  └──────────────────┘         └─────────────┘       └──────────────┘
 ```
 
-Each `.dat` bundle is a msgpack-serialized file containing solution
-metadata and references to the compiled code objects.
+Each `.dat` bundle is a [msgpack](https://msgpack.org/)-serialized
+(a compact binary format similar to JSON) file containing solution metadata
+and references to the compiled code objects.
 
 At runtime, the library tree narrows the candidate set through a priority
 cascade:
@@ -156,7 +158,7 @@ The selection API maps user-facing calls to internal library lookups:
 |-----------------------|------------------------|-----------------------|
 | `algoGetHeuristic()`  | `findTopSolutions()`   | Ranked top N solutions|
 | `getAllAlgos()`        | `findAllSolutions()`   | Every compatible solution|
-| (no algo at dispatch) | `getBestSolutions()`   | Single best solution  |
+| `hipblasLtMatmul()` without pre-selected algo | `getBestSolutions()`   | Single best solution  |
 
 The priority cascade means the library first tries to find a solution tuned
 for the exact product SKU (identified by PCI device ID, e.g., `75a3` =
