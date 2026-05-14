@@ -459,10 +459,10 @@ assembly text. The generation is modular:
 
 #### Instruction scheduling (`ScheduleIterAlg`)
 
-Instruction scheduling -- interleaving memory operations between MFMAs to
-hide latency -- happens *during* IR construction, not as a separate pass
-(except for stinkytofu). The `ScheduleIterAlg` solution parameter (SIA)
-selects the strategy. The default is SIA=3.
+Instruction scheduling -- interleaving operations between MFMAs to hide
+memory latency -- happens *during* IR construction, not as a separate
+pass (except for stinkytofu). The `ScheduleIterAlg` solution parameter
+(SIA) selects the strategy. The default is SIA=3.
 
 | SIA | Strategy | What it does |
 |-----|----------|--------------|
@@ -472,19 +472,45 @@ selects the strategy. The default is SIA=3.
 | 3 | Full MFMA-interleaved | Interleaves global reads, local writes, local reads, and pack instructions between individual MFMAs. Controlled by `GlobalReadPerMfma` and `LocalWritePerMfma`. This is the default. |
 | 4 | stinkytofu | Remapped to SIA=0 (no scheduling during generation), then the entire IR is handed to stinkytofu's DAG scheduler for optimization. |
 
-SIA 0--3 are implemented as `Components/SIA.py` classes (SIA0, SIA1, SIA2,
-SIA3) and called via `makeSchedule()` during IR construction in
-`KernelWriter.py`. SIA=4 is remapped at solution setup time
-(`SolutionStructs/Solution.py`): the kernel is generated with SIA=0, and the
-`_StinkyTofuOptLevel` flag triggers stinkytofu after `rocIsaPass`.
+SIA scheduling is **MFMA-centric**: it decides what goes between each
+pair of MFMAs. The scheduled instruction types are:
 
-Note: `rocIsaPass` does **no** instruction scheduling -- only delay-ALU
-insertion, duplicate removal, and cycle estimation.
+- **Memory operations** -- global reads, local reads, local writes
+  (the primary targets for latency hiding).
+- **Pack VALUs** -- type-conversion instructions (e.g.,
+  `v_cvt_pk_f32_bf16`) that feed MFMA operands. These are the only
+  VALU instructions that receive per-instruction placement between
+  MFMAs.
+- **Pointer updates, sync, waitcnt** -- placed at fixed MFMA indices
+  as opaque blocks.
+
+General VALU instructions (address arithmetic, other ALU work) are
+**not** individually scheduled -- they are embedded inside larger
+instruction modules and emitted as-is. Only stinkytofu (SIA=4)
+performs full DAG-based scheduling across all instruction types.
+
+SIA 0--3 are implemented as `Components/SIA.py` classes (SIA0, SIA1,
+SIA2, SIA3) and called via `makeSchedule()` during IR construction in
+`KernelWriter.py`. SIA=4 is remapped at solution setup time
+(`SolutionStructs/Solution.py`): the kernel is generated with SIA=0,
+and the `_StinkyTofuOptLevel` flag triggers stinkytofu after
+`rocIsaPass`.
+
+**In practice:** SIA is tuned per-solution and stored in the shipped
+logic YAML files. SIA=3 is used by ~99% of shipped solutions across
+all architectures. SIA=1 appears as a minority for specific cases
+(e.g., DGEMM, RDNA). SIA=4 (stinkytofu) is not yet shipped in any
+production logic file -- it currently only has a backend for gfx1250
+and appears only in test/benchmark configs.
+
+Note: `rocIsaPass` does **no** instruction scheduling -- only
+delay-ALU insertion, duplicate removal, and cycle estimation.
 
 A separate **subtile path** (`UseSubtileImpl=True`) bypasses the SIA
 system entirely and uses its own `LogicalScheduler` +
 `InstructionScheduler` (`Components/Subtile/`) for constraint-based
-slot placement between MFMAs.
+slot placement between MFMAs. It schedules ds_read, buffer_load,
+waitcnt, and M0 updates, but not pack or general VALU instructions.
 
 ### Stage 4: Library creation
 
