@@ -9,7 +9,7 @@ Chapters [3](03-architecture.md), [6](06-tensilelite-guide.md), and
 
 ## 1. Host Library File Reference
 
-> For a conceptual overview, see [Chapter 3, Section 1](03-architecture.md#1-core-concepts-essentials) and [Chapter 3, Section 2](03-architecture.md#2-how-a-gemm-call-becomes-a-kernel-essentials).
+> For a conceptual overview, see [Chapter 3, Section 2](03-architecture.md#2-how-a-gemm-call-becomes-a-kernel-essentials) and [Chapter 7, Section 1](07-host-library-guide.md#1-what-the-host-library-does-essentials).
 
 ### Top-level files
 
@@ -67,7 +67,7 @@ rocblaslt_matmul()         -- line 683
 
 1. **Argument validation** -- calls `rocblaslt_matmul_valid_args()` which extracts dimensions (m, n, k), leading dimensions, batch strides, data types, epilogue parameters, and bias/scale pointers from the descriptor structs.
 2. **scaleAlphaVec handling** -- when a per-column alpha vector is set, the scalar alpha is forced to 1.0 and the vector is passed to the kernel instead.
-3. **Problem construction** -- builds a `RocblasltContractionProblem` struct (defined in `tensile_host.cpp`, line 79) that captures all GEMM parameters in a single object.
+3. **Problem construction** -- builds a `RocblasltContractionProblem` struct (defined in `rocblaslt-types.h`, line 467; constructor in `tensile_host.cpp`, line 79) that captures all GEMM parameters in a single object.
 4. **Dispatch** -- calls `runContractionProblem(handle, algo, problem, gemmData)` (line 225).
 
 ### Layer 3: Backend dispatch (`library/src/amd_detail/rocblaslt/src/tensile_host.cpp`)
@@ -198,7 +198,7 @@ The heuristic path supports a file-based override mechanism. When the environmen
 
 ---
 
-## 4. Library Class Hierarchy
+## 4. TensileLite Solution Library Class Hierarchy
 
 > For a conceptual overview, see [Chapter 3, Section 4](03-architecture.md#4-how-solutions-are-selected-essentials).
 
