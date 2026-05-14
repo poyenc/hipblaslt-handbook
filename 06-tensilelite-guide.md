@@ -426,9 +426,18 @@ architecture. `Common/ValidParameters.py` defines the allowed ranges.
 
 ### Stage 3: Kernel code generation
 
-`KernelWriterAssembly.py` is the main code generator. It uses `rocisa` to
-build an in-memory IR tree of GPU ISA instructions (CDNA and RDNA), not raw
-assembly text. The generation is modular:
+`KernelWriterAssembly.py` is the unified interface for all kernel source.
+Its `getSourceFileString()` method either generates assembly via rocisa or
+reads a hand-written `.s` file from `CustomKernels/` -- the caller
+(`Run.py`) sees no difference. For custom kernels (when `CustomKernelName`
+is non-empty), the entire code generation engine is skipped; for
+auto-generated kernels, it uses `rocisa` to build an in-memory IR tree of
+GPU ISA instructions (CDNA and RDNA). Currently 119 custom kernels exist
+(gfx942 and gfx950 only), covering ~0.06% of shipped solutions --
+mainly FP8 GroupedGemm and GSU variants where hand-tuned assembly
+outperforms the generator.
+
+The auto-generated path is modular:
 
 - **Components/** contains reusable assembly-generation modules. Each
   component handles one aspect of the kernel:
