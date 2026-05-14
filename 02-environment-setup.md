@@ -187,27 +187,46 @@ CMake presets provide named configurations defined in `CMakePresets.json`. They 
 # List available presets
 cmake --list-presets
 
-# Full release build
-cmake --preset default:release
+# Full release build (host + device + clients)
+cmake --preset default:release \
+  -DGPU_TARGETS=gfx950 \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+  -DHIPBLASLT_ENABLE_BLIS=OFF
 cmake --build build --parallel
 
-# Host library only
-cmake --preset hipblaslt
+# Host library only (no device libs, no clients)
+cmake --preset hipblaslt \
+  -DGPU_TARGETS=gfx950 \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build build --parallel
 
 # Device GEMM libraries only
-cmake --preset gemm-libs
+# Use TENSILELITE_LOGIC_FILTER to limit which logic files are compiled and avoid
+# OOM at link time. "gfx950/Equality/*" builds ~30 files instead of all 617.
+# Remove this flag to build the full library (may need 32 GB+ RAM or swap).
+cmake --preset gemm-libs \
+  -DGPU_TARGETS=gfx950 \
+  -DTENSILELITE_LOGIC_FILTER="gfx950/Equality/*"
 cmake --build build --parallel
 
 # Host + device + clients (tests and benchmarks)
-# -DHIPBLASLT_ENABLE_BLIS=OFF  — BLIS not available via apt, disable unless built from source
-# -DHIPBLASLT_ENABLE_ROCROLLER=OFF  — optional, remove if shared/rocroller is available
-# -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF  — optional, remove if shared/mxdatagenerator is available
-# -DCMAKE_POLICY_VERSION_MINIMUM=3.5  — only needed with CMake 4.x + RocRoller ON
 cmake --preset hipblaslt-clients \
+  -DGPU_TARGETS=gfx950 \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
   -DHIPBLASLT_ENABLE_BLIS=OFF \
   -DHIPBLASLT_ENABLE_ROCROLLER=OFF \
   -DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF
+cmake --build build --parallel
+
+# TensileLite host + client only
+cmake --preset tensilelite \
+  -DGPU_TARGETS=gfx950 \
+  -DHIPBLASLT_ENABLE_YAML=OFF
+cmake --build build --parallel
+
+# rocisa module only
+cmake --preset rocisa \
+  -DHIPBLASLT_ENABLE_YAML=OFF
 cmake --build build --parallel
 ```
 
@@ -215,11 +234,13 @@ cmake --build build --parallel
 
 Append `-D<OPTION>=<VALUE>` to customize the build. The most commonly needed options:
 
-- **`-DGPU_TARGETS=gfx950`** — Build for your GPU only. Default builds all 15 architectures, which is the main reason builds are slow.
+- **`-DGPU_TARGETS=gfx950`** — Build for your GPU only. Default builds all 14 base architectures, which is the main reason builds are slow.
+- **`-DCMAKE_POLICY_VERSION_MINIMUM=3.5`** — Required with CMake 4.x when RocRoller is ON (i.e. any preset that builds the host library). Harmless to include unconditionally.
 - **`-DHIPBLASLT_ENABLE_BLIS=OFF`** — BLIS is not available via `apt`. Disable unless built from source.
-- **`-DHIPBLASLT_ENABLE_ROCROLLER=OFF`** — Disable if `shared/rocroller` is not available.
+- **`-DHIPBLASLT_ENABLE_ROCROLLER=OFF`** — Disable if `shared/rocroller` is not available. Removes JIT kernel support but precompiled TensileLite kernels still work.
 - **`-DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF`** — Disable if `shared/mxdatagenerator` is not available.
-- **`-DCMAKE_POLICY_VERSION_MINIMUM=3.5`** — Only needed with CMake 4.x when RocRoller is ON.
+- **`-DHIPBLASLT_ENABLE_YAML=OFF`** — The `rocisa` and `tensilelite` presets enable YAML by default, which requires LLVM development packages (`llvm-dev`). Disable unless `llvm-dev` is installed.
+- **`-DTENSILELITE_LOGIC_FILTER="gfx950/Equality/*"`** — Limits which logic files are compiled during device library builds to avoid OOM at link time. Note: `"*"` is the default and has no effect — use a specific subdirectory pattern.
 
 See the [Build Options Cheat Sheet](#build-options-cheat-sheet-deep-dive) for the full list of all CMake options.
 
@@ -234,6 +255,7 @@ cmake -B build -S . \
   -DCMAKE_C_COMPILER=/opt/rocm/bin/amdclang \
   -DCMAKE_PREFIX_PATH=/opt/rocm \
   -DGPU_TARGETS=gfx950 \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
   -DHIPBLASLT_ENABLE_BLIS=OFF
 
 cmake --build build --parallel
