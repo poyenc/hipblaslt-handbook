@@ -135,7 +135,7 @@ cascade:
 ```
 Library tree
 └── Hardware layer (which GPU?)
-    ├── gfx950_id75a3 (exact chip + PCI device ID)  ← preferred
+    ├── gfx950_id75a3 (architecture + product SKU)   ← preferred
     └── gfx950 (generic architecture)               ← fallback
         └── Problem type (data types, transpose, features)
             ├── Equality       ← exact dimension match
@@ -153,7 +153,8 @@ The selection API maps user-facing calls to internal library lookups:
 | (no algo at dispatch) | `getBestSolutions()`   | Single best solution  |
 
 The priority cascade means the library first tries to find a solution tuned
-for the exact chip (identified by PCI device ID), then falls back to the
+for the exact product SKU (identified by PCI device ID, e.g., `75a3` =
+MI325X), then falls back to the
 generic architecture.  Within each architecture node, Equality entries
 (benchmark-derived decisions for specific M/N/K values) are checked first.
 If no exact match exists, GridBased heuristics interpolate from nearby data

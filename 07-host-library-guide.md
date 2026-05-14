@@ -75,7 +75,7 @@ The three user-facing entry points for algorithm selection are described in [Cha
 
 The library tree narrows candidate solutions through two levels of priority.
 
-At the **hardware level**, the tree first looks for solutions tuned for the exact chip, identified by PCI device ID (e.g., `gfx950_id75a3`). If no exact-chip entry exists, it falls back to solutions tuned for the generic architecture (e.g., `gfx950`). The `isFallbackMatch()` mechanism in the library tree manages this: an exact chip-ID match is always preferred, and the generic-architecture node serves as a fallback when chip-specific tuning is not available.
+At the **hardware level**, the tree first looks for solutions tuned for the exact product SKU, identified by PCI device ID (e.g., `gfx950_id75a3` = MI325X). If no exact-chip entry exists, it falls back to solutions tuned for the generic architecture (e.g., `gfx950`). The `isFallbackMatch()` mechanism in the library tree manages this: an exact chip-ID match is always preferred, and the generic-architecture node serves as a fallback when chip-specific tuning is not available.
 
 At the **strategy level** within each hardware node, EqualityMatching is checked before GridBasedMatching. If EqualityMatching has a benchmark-derived entry for the exact M, N, K dimensions of your problem, that solution wins -- it is the most precisely tuned result. Otherwise, GridBasedMatching provides a heuristic-ranked solution by interpolating from nearby data points. Additional strategies (Range, FreeSize) exist as lower-priority fallbacks; see Chapter 3 Section 4 for the full priority tree.
 
