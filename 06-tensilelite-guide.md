@@ -564,14 +564,14 @@ Entry point: `Tensile/bin/TensileCreateLibrary`
 
 ### Prerequisites
 
-All commands run from the `tensilelite/` directory.
+All commands run from the `tensilelite/` directory with the project venv
+activated (see [Chapter 2](02-environment-setup.md#building-hipblaslt-essentials)
+for venv setup).
 
 ```bash
+source <venv>/bin/activate
 cd <repo>/projects/hipblaslt/tensilelite
 ```
-
-A Python virtual environment with the project dependencies is assumed. See
-Chapter 2 for environment setup.
 
 ### Building rocisa
 
@@ -676,20 +676,23 @@ Tensile/bin/Tensile Tensile/Tests/common/exception/<test>.yaml tensile-out \
 
 ### Rebuilding assembly to code objects
 
-During tuning, you can modify assembly files and rebuild just the code
-object without regenerating everything:
+During tuning, you can modify `.s` files and reassemble just the code
+object without re-running the full Tensile pipeline. The hand-written
+`Makefile` in `tensilelite/` is a thin wrapper around `amdclang++` for
+this purpose (it is not CMake-generated):
 
 ```bash
 # After editing an .s file in the tensile-out directory:
 make co TENSILE_OUT=tensile-out
 
-# Specify architecture and wavefront size explicitly:
-make co TENSILE_OUT=tensile-out ARCH="gfx950" WAVE=64
+# Specify architecture (with xnack suffix) and wavefront size:
+make co TENSILE_OUT=tensile-out ARCH="gfx942:xnack-" WAVE=64
 
 # For RDNA (wavefront size 32):
 make co TENSILE_OUT=tensile-out ARCH="gfx1100" WAVE=32
 ```
 
+The `ARCH` value is auto-detected from `.co` filenames when omitted.
 The `Makefile` also accepts `ASM_ARGS` and `LINK_ARGS` for additional
 assembler and linker flags.
 
@@ -703,6 +706,14 @@ assembler and linker flags.
 | rocisa `pyproject.toml` or `CMakeLists.txt` | `invoke rocisa` |
 | TensileLite Python code | No rebuild needed |
 | Assembly `.s` files (tuning) | `make co TENSILE_OUT=<dir>` |
+
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `invoke: command not found` | venv not activated | Activate your project venv (see [Chapter 2](02-environment-setup.md#building-hipblaslt-essentials)) |
+| `ImportError: cannot import name 'rocIsa' from 'rocisa'` | rocisa not built or stale `_rocisa.so` | `invoke rocisa` |
+| `tox -e rocisa` fails with `Cannot import 'scikit_build_core.build'` | tox venv missing build deps | Run `invoke rocisa` first to build in the project venv, then use `tox -e rocisa` |
 
 ---
 
