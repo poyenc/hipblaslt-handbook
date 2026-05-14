@@ -48,7 +48,8 @@ This section defines concepts specific to TensileLite that build on the
 |                      | Provides register/instruction primitives for kernel writers  |                      |
 | Selection Strategy   | How a logic file's size-to-solution mapping works.           | Logic file           |
 |                      | Options: Equality (exact match), GridBased (heuristic),      | element 11           |
-|                      | Range (range-based), Origami (analytical model)              |                      |
+|                      | Range (range-based), FreeSize (any size), Origami            |                      |
+|                      | (analytical cost model, used by RocRoller)                   |                      |
 | Code Generation      | The offline Python pipeline that turns problem descriptions  | `Tensile/`           |
 | Pipeline             | into assembly source -> compiled code objects                |                      |
 
@@ -86,9 +87,10 @@ This section defines concepts specific to TensileLite that build on the
 rocisa is a Python/C++ ISA code generator built with nanobind. It provides
 Python bindings to ROCm ISA primitives -- registers, instructions, data
 types -- so kernel writers can construct assembly programs from Python without
-string manipulation. It also contains the stinkytofu C++ submodule (typed
-enums for DPP (data-parallel primitive) and MFMA (matrix fused
-multiply-accumulate) modifier fields). Build or rebuild it from the
+string manipulation. It also contains the stinkytofu C++ submodule (a
+vendored library providing typed enums for DPP (data-parallel primitive) and
+MFMA (matrix fused multiply-accumulate) modifier fields, used internally by
+rocisa). Build or rebuild rocisa from the
 tensilelite root with:
 
 ```bash

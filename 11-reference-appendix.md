@@ -76,14 +76,14 @@ rocblaslt_matmul()         -- line 683
 runContractionProblem()    -- line 2868
   |-- #ifdef HIPBLASLT_USE_ROCROLLER
   |     |-- useRocRoller(handle, prob) ?
-  |     \-- YES: runRocRollerContractionProblem(handle, algo, prob)   [see Section 5]
+  |     \-- YES: runRocRollerContractionProblem(handle, algo, prob)   [see S5 below]
   |
   |-- get_library_and_adapter(&library, &deviceProp, &hardware)
   |     \-- initializes TensileHost singleton on first call (line 2624)
   |
   |-- if algo == nullptr:
   |     \-- getBestSolutions(prob, ..., 1, &heuristicResult, ...)
-  |         \-- library->findTopSolutions(tensileProblem, hardware, count)
+  |         \-- see S3 below for the full algorithm-selection flow
   |
   |-- updateTensileProblem(prob, data->problem)   -- line 1846, translates RocblasltContractionProblem to TensileLite::ContractionProblemGemm
   |-- data->inputs = GetTensileInputs(prob)       -- line 2110, maps pointers/scalars to Tensile input struct
@@ -150,7 +150,7 @@ Both paths converge on `getBestSolutions()` in `tensile_host.cpp` (line 3910).
 ```
 getBestSolutions()  -- tensile_host.cpp, line 3910
   |-- if HIPBLASLT_USE_ROCROLLER && useRocRoller(handle, prob):
-  |     \-- getRocRollerBestSolutions()   [see Section 5]
+  |     \-- getRocRollerBestSolutions()   [see S5 below]
   |
   |-- get_library_and_adapter(&library, &deviceProp, &hardware)
   |-- updateTensileProblem(prob, data->problem)
@@ -384,7 +384,7 @@ The cache is owned by `RocRollerHandle` (created in `rocroller_create_handle()`,
 
 ## 6. Device Libraries
 
-> For a conceptual overview, see [Chapter 3, Section 1](03-architecture.md#1-core-concepts-essentials).
+> Device libraries are listed in [Chapter 3, Section 6: Key Directory Map](03-architecture.md#6-key-directory-map-essentials). This section provides additional build-level detail.
 
 Located at `device-library/`.
 

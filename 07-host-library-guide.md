@@ -2,7 +2,7 @@
 
 ## 1. What the host library does `[Essentials]`
 
-The host library is the C++ code that sits between the public API and the GPU. Its job is to translate API calls into contraction problems, select the best kernel solution from the library tree, and launch the kernel on a HIP stream. For definitions of these terms (Problem, Contraction Problem, Solution, Library), see [Chapter 3 Section 1: Core Concepts](03-architecture.md#1-core-concepts-essentials).
+The host library is the C++ code that sits between the public API and the GPU. Its job is to translate API calls into contraction problems, select the best kernel solution from the library tree (the runtime selection structure described in [Chapter 3, Section 1](03-architecture.md#1-core-concepts-essentials)), and launch the kernel on a HIP stream. For definitions of these terms (Problem, Contraction Problem, Solution, Library), see [Chapter 3 Section 1: Core Concepts](03-architecture.md#1-core-concepts-essentials).
 
 ---
 

@@ -73,7 +73,8 @@ calls `rocblaslt_matmul()`.  No computation happens here -- the function is
 a thin translation layer between the public types and the internal types.
 
 **rocblaslt backend (`rocblaslt_mat.cpp`).** `rocblaslt_matmul()` validates
-arguments (null pointers, type mismatches, workspace size) and delegates to
+arguments (null pointers, type mismatches, workspace size -- the workspace
+is a temporary GPU buffer the application allocates for intermediate results) and delegates to
 `rocblaslt_matmul_impl()`.  That function extracts dimensions, data types,
 and epilogue settings (post-GEMM operations such as bias, activation,
 and scaling) from the descriptors, packs them into a
@@ -102,7 +103,7 @@ hipBLASLt has two backends for kernel dispatch.
 |---------------|--------------------------|--------------------------|
 | Kernels       | Precompiled `.co` files  | JIT-compiled at runtime  |
 | Default usage | All standard GEMM        | Block-scaled GEMM        |
-| Selection     | Logic file lookup        | Origami analytical model |
+| Selection     | Logic file lookup        | Origami (analytical cost model) |
 | First-call    | Loads code object on use | JIT compiles kernel      |
 | Caching       | Loaded once, reused      | Cached after first JIT   |
 
@@ -112,8 +113,10 @@ rather than one per tensor or per row, indicated by `ScalingFormat::Block_*`
 on the A or B scale type), or when the application forces it on via a handle
 flag (`handle->useRocRoller == 1`).  The decision is made by `useRocRoller()`
 in `tensile_host.cpp`.  One exception: when both A and B are FP4 with a
-pre-swizzled block-scale layout, TensileLite is used instead because it has
-hand-optimized kernels for that format.
+pre-swizzled block-scale layout (data reordered in memory to match the
+GPU's expected access pattern), TensileLite is used instead because it has
+hand-optimized kernels for that format.  For RocRoller internals, see
+[Chapter 11, Section 5](11-reference-appendix.md#5-rocroller-dispatch-details).
 
 
 ## 4. How solutions are selected `[Essentials]`
@@ -128,6 +131,9 @@ organized into a library tree.
  │ solution mappings│         │ code objects │       │ nodes        │
  └──────────────────┘         └─────────────┘       └──────────────┘
 ```
+
+Each `.dat` bundle is a msgpack-serialized file containing solution
+metadata and references to the compiled code objects.
 
 At runtime, the library tree narrows the candidate set through a priority
 cascade:
