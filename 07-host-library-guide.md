@@ -8,7 +8,10 @@ The host library is the C++ code that sits between the public API and the GPU. I
 
 ## 2. Request lifecycle `[Essentials]`
 
-There are two call paths into the host library: the C API path and the C++ extension API path. Both ultimately reach `tensile_host.cpp`, which selects a kernel and launches it on the GPU.
+There are two call paths into the host library: the C API path, which
+selects a kernel on every call, and the C++ extension API path, which
+caches the selection for repeated dispatch. Both ultimately reach
+`tensile_host.cpp` to launch the kernel on the GPU.
 
 ### C API path
 
@@ -75,7 +78,7 @@ The three user-facing entry points for algorithm selection are described in [Cha
 
 The library tree narrows candidate solutions through two levels of priority.
 
-At the **hardware level**, the tree first looks for solutions tuned for the exact product SKU, identified by PCI device ID (e.g., `gfx950_id75a3` = MI325X). If no exact-chip entry exists, it falls back to solutions tuned for the generic architecture (e.g., `gfx950`). The `isFallbackMatch()` mechanism in the library tree manages this: an exact chip-ID match is always preferred, and the generic-architecture node serves as a fallback when chip-specific tuning is not available.
+At the **hardware level**, the tree first looks for solutions tuned for the exact product SKU, identified by PCI device ID (e.g., `gfx950_id75a3` = MI355X). If no exact-chip entry exists, it falls back to solutions tuned for the generic architecture (e.g., `gfx950`). An exact chip-ID match is always preferred, and the generic-architecture node serves as a fallback when chip-specific tuning is not available.
 
 At the **strategy level** within each hardware node, EqualityMatching is checked before GridBasedMatching. If EqualityMatching has a benchmark-derived entry for the exact M, N, K dimensions of your problem, that solution wins -- it is the most precisely tuned result. Otherwise, GridBasedMatching provides a heuristic-ranked solution by interpolating from nearby data points. Additional strategies (Range, FreeSize) exist as lower-priority fallbacks; see Chapter 3 Section 4 for the full priority tree.
 
