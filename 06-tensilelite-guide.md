@@ -83,9 +83,10 @@ rocisa is a Python/C++ ISA code generator built with nanobind. It provides
 Python bindings to ROCm ISA primitives -- registers, instructions, data
 types -- so kernel writers can construct assembly programs from Python without
 string manipulation. It also contains the stinkytofu C++ submodule, an
-LLVM-inspired pass-based IR optimizer for AMD GPU assembly kernels (DAG
-scheduling, wait-count insertion, dead-code elimination, TableGen-based
-instruction definitions). Build or rebuild rocisa from the
+LLVM-inspired pass-based IR optimizer that post-processes the
+rocisa-generated assembly at build time — reordering instructions for
+better scheduling, inserting wait counts, and eliminating dead code.
+Build or rebuild rocisa from the
 tensilelite root with:
 
 ```bash
