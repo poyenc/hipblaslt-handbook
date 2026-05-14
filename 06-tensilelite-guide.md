@@ -44,12 +44,13 @@ This section defines concepts specific to TensileLite that build on the
 |----------------------|--------------------------------------------------------------|----------------------|
 | Custom Kernel        | A hand-written assembly kernel (`.s` file) referenced by     | `CustomKernels/`     |
 |                      | name in a logic file's solution entry                        |                      |
-| rocisa               | Python/C++ ISA code generation module built with nanobind.   | `rocisa/`            |
+| rocisa               | Python/C++ ISA code generation module built with nanobind    | `rocisa/`            |
+|                      | (a lightweight Python/C++ binding library).                  |                      |
 |                      | Provides register/instruction primitives for kernel writers  |                      |
 | Selection Strategy   | How a logic file's size-to-solution mapping works.           | Logic file           |
 |                      | Options: Equality (exact match), GridBased (heuristic),      | element 11           |
-|                      | Range (range-based), FreeSize (any size), Origami            |                      |
-|                      | (analytical cost model, used by RocRoller)                   |                      |
+|                      | Range (range-based), FreeSize (any size), Prediction         |                      |
+|                      | (analytical cost model; stored in `Origami/` directories)    |                      |
 | Code Generation      | The offline Python pipeline that turns problem descriptions  | `Tensile/`           |
 | Pipeline             | into assembly source -> compiled code objects                |                      |
 
@@ -87,10 +88,10 @@ This section defines concepts specific to TensileLite that build on the
 rocisa is a Python/C++ ISA code generator built with nanobind. It provides
 Python bindings to ROCm ISA primitives -- registers, instructions, data
 types -- so kernel writers can construct assembly programs from Python without
-string manipulation. It also contains the stinkytofu C++ submodule (a
-vendored library providing typed enums for DPP (data-parallel primitive) and
-MFMA (matrix fused multiply-accumulate) modifier fields, used internally by
-rocisa). Build or rebuild rocisa from the
+string manipulation. It also contains the stinkytofu C++ submodule, an
+LLVM-inspired pass-based IR optimizer for AMD GPU assembly kernels (DAG
+scheduling, wait-count insertion, dead-code elimination, TableGen-based
+instruction definitions). Build or rebuild rocisa from the
 tensilelite root with:
 
 ```bash
@@ -254,7 +255,7 @@ gfx950/
   gfx950/
     Equality/       solutions selected by exact dimension match
     GridBased/      solutions selected by grid-based heuristics
-    Origami/        solutions selected by analytical performance model
+    Origami/        analytical cost model (element 11 value = `Prediction`)
     Range/          solutions selected by range-based matching
   gfx950_id75a3/
     Equality/       solutions for a specific device variant
@@ -276,7 +277,7 @@ Each logic file is a YAML list with a fixed element structure:
 | 7       | Size-to-solution mapping  | Maps dimensions to solution indices       |
 | 8-9     | Reserved                  | `null`                                    |
 | 10      | Performance metric        | `DeviceEfficiency`                        |
-| 11      | Selection strategy        | `GridBased`, `Equality`, `Range`, etc.    |
+| 11      | Selection strategy        | `GridBased`, `Equality`, `Range`, `Prediction`, etc. |
 
 ### Walkthrough of a real logic file
 
@@ -322,7 +323,7 @@ This is a large mapping that fully specifies the GEMM variant. Key fields:
 | `OperationType` | `GEMM` | Always GEMM for matrix multiply |
 | `DataType` | `4` | Input data type (4 = half) |
 | `DestDataType` | `4` | Output data type (4 = half) |
-| `ComputeDataType` | `0` | Accumulation data type (see `Common/DataType.py` for numeric code mapping) |
+| `ComputeDataType` | `0` | Accumulation data type (0 = single; see `Common/DataType.py` for full mapping) |
 | `HighPrecisionAccumulate` | `true` | Use higher precision in MAC |
 | `TransposeA` | `0` | A is not transposed (0 = N, 1 = T) |
 | `TransposeB` | `1` | B is transposed (0 = N, 1 = T) |
@@ -408,7 +409,7 @@ performance used for heuristic ranking.
 - GridBased
 ```
 
-Selection strategies include `GridBased` (heuristic selection based on problem dimensions), `Equality` (exact-match lookup), `Origami` (analytical performance model), and `Range` (range-based matching).
+Selection strategies include `GridBased` (heuristic selection based on problem dimensions), `Equality` (exact-match lookup), `Prediction` (analytical cost model; files live under the `Origami/` directory), and `Range` (range-based matching).
 
 ---
 
