@@ -268,7 +268,7 @@ Each logic file is a YAML list with a fixed element structure:
 | 3       | Device ID filter          | `[Device 75a0]`                           |
 | 4       | Problem type description  | Data types, transpose, features           |
 | 5       | Solution list             | Kernel tuning parameters                  |
-| 6       | Index mapping             | Tensor index roles                        |
+| 6       | Index order               | Dimension traversal order for Element 7 lookup |
 | 7       | Size-to-solution mapping  | Maps dimensions to solution indices       |
 | 8-9     | Reserved                  | `null`                                    |
 | 10      | Performance metric        | `DeviceEfficiency`                        |
@@ -365,13 +365,15 @@ parameters. Important fields from the real file:
 | `DirectToLds` | `0` | Direct global-to-LDS transfer |
 | `DirectToVgprA` / `DirectToVgprB` | `false` | Direct-to-VGPR bypassing LDS |
 
-**Element 6 -- Index mapping:**
+**Element 6 -- Index order:**
 
 ```yaml
 - [2, 3, 0, 1]
 ```
 
-Maps tensor indices to their roles.
+Defines the order in which dimension indices are traversed when building
+the size-to-solution lookup in Element 7.  Here `[2, 3, 0, 1]` means:
+batch index first, then summation (K), then free-M, then free-N.
 
 **Element 7 -- Size-to-solution mapping table:**
 
