@@ -274,44 +274,21 @@ Each logic file is a YAML list with a fixed element structure:
 | 10 | Performance metric | How solution quality is measured. | `DeviceEfficiency` |
 | 11 | Selection strategy | How the size-to-solution mapping is queried at runtime. | `GridBased`, `Equality`, `Range`, `Prediction` |
 
-### Walkthrough of a real logic file
+### Filename convention
 
-The walkthrough below expands each element from the table above using a
-real gfx950 logic file as an example.
+Logic file names encode the contraction pattern and features. For example,
+`gfx950_Cijk_Ailk_Bjlk_HHS_BH_Bias_Aux_AH_SAV.yaml`:
 
-The file is `gfx950_Cijk_Ailk_Bjlk_HHS_BH_Bias_Aux_AH_SAV.yaml`
-(GridBased selection, gfx950). The filename encodes the contraction
-pattern and features: `Cijk` = C tensor indices, `Ailk`/`Bjlk` = A and B
-layouts, `HHS` = half/half/single types, `BH` = high-precision accumulate,
-`Bias` = bias enabled, `AH` = activation hipblaslt, `SAV` = scale-alpha-vec.
+- `Cijk` = C tensor indices
+- `Ailk` / `Bjlk` = A and B index layouts (see TransposeA/B below)
+- `HHS` = half/half/single (input/dest/compute data types)
+- `BH` = high-precision accumulate
+- `Bias` = bias enabled, `AH` = activation hipblaslt, `SAV` = scale-alpha-vec
 
-**Element 0 -- Version header:**
+### Element 4 — Problem type fields
 
-```yaml
-- {MinimumRequiredVersion: 5.0.0}
-```
-
-**Element 1 -- Scheduling model:**
-
-```yaml
-- gfx950
-```
-
-**Element 2 -- Architecture:**
-
-```yaml
-- gfx950
-```
-
-**Element 3 -- Device ID filter:**
-
-```yaml
-- [Device 75a0]
-```
-
-**Element 4 -- Problem type description:**
-
-This is a large mapping that fully specifies the GEMM variant. Key fields:
+Element 4 is a large mapping that fully specifies the GEMM variant.
+Key fields (values from the example file above):
 
 | Field | Example value | Meaning |
 |-------|---------------|---------|
@@ -347,10 +324,10 @@ When `TransposeA = 0` (not transposed), M comes first in A's layout:
 Batch).  The filename encodes this too: `Ailk` = A indices are i(M),
 l(K), k(Batch); `Alik` = l(K), i(M), k(Batch).
 
-**Element 5 -- Solution list:**
+### Element 5 — Solution tuning parameters
 
-An array of solution mappings. Each solution defines the kernel's tuning
-parameters. Important fields from the real file:
+Each solution in the Element 5 array defines a kernel's tuning
+parameters.  Key fields:
 
 | Field | Example value | Purpose |
 |-------|---------------|---------|
@@ -378,48 +355,22 @@ parameters. Important fields from the real file:
 | `DirectToLds` | `0` | Direct global-to-LDS transfer |
 | `DirectToVgprA` / `DirectToVgprB` | `false` | Direct-to-VGPR bypassing LDS |
 
-**Element 6 -- Index order:**
+### Element 7 — Size-to-solution mapping
 
-```yaml
-- [2, 3, 0, 1]
-```
-
-Defines the order in which dimension indices are traversed when building
-the size-to-solution lookup in Element 7.  Here `[2, 3, 0, 1]` means:
-batch index first, then summation (K), then free-M, then free-N.
-
-**Element 7 -- Size-to-solution mapping table:**
+Each entry in the Element 7 array maps a range of problem dimensions to
+a solution.  Example from the file above:
 
 ```yaml
 - - - [4607, 1335, 1, 320, 4607, 4607, 4607, 1335]
     - [1, 19321.7]
 ```
 
-Maps problem dimensions to solution indices.  Each entry is a pair: an
-8-element tuple of dimension/stride bounds, and a `[SolutionIndex,
-efficiency]` pair.  The efficiency value (e.g., 19321.7) is the measured
-performance used for heuristic ranking.
-
-**Elements 8-9 -- Reserved (null):**
-
-```yaml
-- null
-- null
-```
-
-**Element 10 -- Performance metric:**
-
-```yaml
-- DeviceEfficiency
-```
-
-**Element 11 -- Selection strategy:**
-
-```yaml
-- GridBased
-```
-
-Selection strategies include `GridBased` (heuristic selection based on problem dimensions), `Equality` (exact-match lookup), `Prediction` (analytical cost model; files live under the `Origami/` directory), and `Range` (range-based matching).
+The first sub-list is an 8-element tuple of dimension and stride bounds
+(traversed in the order specified by Element 6).  The second sub-list is
+`[SolutionIndex, efficiency]` — the index into Element 5 and the
+measured performance used for heuristic ranking.  Multiple entries can
+map to the same SolutionIndex when one kernel is optimal across several
+size ranges.
 
 ---
 
