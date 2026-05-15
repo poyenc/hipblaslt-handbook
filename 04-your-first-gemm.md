@@ -24,7 +24,7 @@ where `<your_gfx>` is your GPU target (e.g., `gfx942`, `gfx950`).
 
 ## Step-by-Step Walkthrough
 
-The sample consists of two parts: a `main()` function that uses a `Runner` helper to manage memory and a HIP stream, and a `simpleGemmExt()` function that contains the actual hipBLASLt API calls. We will focus on the API calls in `simpleGemmExt()` and explain how `Runner` sets up the environment around them.
+The sample consists of two parts: a `main()` function that uses a `Runner` helper to manage memory and a HIP stream, and a `simpleGemmExt()` function that contains the actual hipBLASLt API calls. `Runner` is a sample-only utility (defined in `clients/samples/common/helper.h`, not part of the hipBLASLt API) whose constructor allocates both host and device memory for all matrices, and whose `hostToDevice()`/`deviceToHost()` methods copy between them. We will focus on the API calls in `simpleGemmExt()` and explain how `Runner` sets up the environment around them.
 
 ### Step 1: Create a hipBLASLt Handle
 
