@@ -203,7 +203,10 @@ solutions for a given problem size and generates exact-match logic YAML files.
 Located at `utilities/QuickTune/`. This tool tunes GEMMs extracted from a
 real model workload.
 
-1. **Extract GEMM calls from your model:**
+1. **Extract GEMM calls from your model.** `HIPBLASLT_LOG_MASK=32` enables
+   bench-format logging, which records every GEMM call as a reproducible
+   `hipblaslt-bench` command line (see [Section 6](#use-the-log-mask-for-selective-output)
+   for the full bit table):
 
    ```bash
    export HIPBLASLT_LOG_MASK=32
