@@ -116,10 +116,18 @@ logic YAML files that control which solutions are selected at runtime.
 
    ```bash
    cd build/release/clients
-   ./hipblaslt-bench -m 4096 -n 4096 -k 4096 --precision f16_r -v
+   # Check which solution the heuristic dispatches (--print_kernel_info)
+   ./hipblaslt-bench -m 4096 -n 4096 -k 4096 --precision f16_r -v --print_kernel_info
+
+   # Force a specific solution by index to test it directly
+   ./hipblaslt-bench -m 4096 -n 4096 -k 4096 --precision f16_r -v \
+       --algo_method index --solution_index <your_index>
    ```
 
-   The `-v` flag enables CPU validation of GPU results.
+   The `-v` flag enables CPU validation. `--print_kernel_info` prints the
+   solution name and index so you can confirm your new solution is being
+   dispatched. Use `--algo_method index --solution_index` to bypass the
+   heuristic and test a specific solution directly.
 
 5. **Run the test suite** to check for regressions:
 
