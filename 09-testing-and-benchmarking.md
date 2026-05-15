@@ -198,8 +198,10 @@ start of two consecutive columns. It must be ≥ the number of rows. When
 
 **How transpose affects storage.** The GEMM computes `D = α·op(A)·op(B) + β·C`
 where `op(X) = X` (transA/B=N) or `op(X) = Xᵀ` (transA/B=T). The matrix
-is always stored in its **original** orientation — the transpose is applied
-logically during the computation, not by rearranging memory:
+is always stored column-major — the transpose is not applied by rearranging
+memory. Instead, the kernel adapts its read pattern: with transA=T, the
+kernel reads columns of the stored (K×M) matrix to obtain rows of the
+logical (M×K) operand:
 
 | Matrix | transA/B=N | transA/B=T |
 |--------|------------|------------|
