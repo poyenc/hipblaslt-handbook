@@ -547,10 +547,16 @@ TENSILE_STREAMK_FIXED_GRID=64 ./hipblaslt-bench -m 4096 -n 4096 -k 4096 \
 
 ### ROCProfiler integration
 
+Use `rocprofv3` (the legacy `rocprof` is deprecated):
+
 ```bash
-# Enable marker trace for profiling
-HIPBLASLT_ENABLE_MARKER=1 rocprof --hip-trace ./hipblaslt-bench \
-  -m 4096 -n 4096 -k 4096 --precision f16_r
+# HIP API + kernel dispatch + marker tracing
+HIPBLASLT_ENABLE_MARKER=1 rocprofv3 --hip-trace --kernel-trace --marker-trace \
+  -- ./hipblaslt-bench -m 4096 -n 4096 -k 4096 --precision f16_r
+
+# Full system trace (HIP + HSA + markers + memory copies)
+HIPBLASLT_ENABLE_MARKER=1 rocprofv3 --sys-trace \
+  -- ./hipblaslt-bench -m 4096 -n 4096 -k 4096 --precision f16_r
 ```
 
 > **Cross-reference:** Full environment variable reference is in
