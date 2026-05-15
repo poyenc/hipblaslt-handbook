@@ -196,18 +196,27 @@ The **leading dimension** (ld) is the distance in elements between the
 start of two consecutive columns. It must be ≥ the number of rows. When
 `ld > rows`, the extra elements are padding (useful for alignment).
 
-**How transpose affects storage.** The GEMM computes `D = α·op(A)·op(B) + β·C`
-where `op(X) = X` (transA/B=N) or `op(X) = Xᵀ` (transA/B=T). The matrix
-is always stored column-major — the transpose is not applied by rearranging
-memory. Instead, the kernel adapts its read pattern: with transA=T, the
-kernel reads columns of the stored (K×M) matrix to obtain rows of the
-logical (M×K) operand:
+**Transpose and leading dimensions.** The GEMM computes
+`D = α·op(A)·op(B) + β·C` where `op(X) = X` (N) or `op(X) = Xᵀ` (T).
+The `transA`/`transB` flags do **not** change how data is stored — they
+tell the kernel how to *read* the data you already have:
 
-| Matrix | transA/B=N | transA/B=T |
-|--------|------------|------------|
-| A | Stored as (M rows × K cols), `lda = M` | Stored as (K rows × M cols), `lda = K` |
-| B | Stored as (K rows × N cols), `ldb = K` | Stored as (N rows × K cols), `ldb = N` |
-| C, D, E | Always (M rows × N cols), `ld = M` | Same |
+```
+transA=N: your A is already (M×K).     transA=T: your A is (K×M) and
+The kernel reads it as-is.             the kernel transposes it on the fly
+                                       to get the (M×K) operand it needs.
+
+  A in memory (M×K)                      A in memory (K×M)
+  ┌─── K cols ───┐                       ┌─── M cols ───┐
+  │              │ M rows                │              │ K rows
+  │    a[r,c]    │                       │    a[r,c]    │
+  └──────────────┘                       └──────────────┘
+  lda = M (rows in stored matrix)        lda = K (rows in stored matrix)
+```
+
+The leading dimension is always the number of rows in the **stored**
+matrix. C, D, and E are always (M×N) regardless of transpose settings,
+so `ldc = ldd = lde = M`.
 
 **Batching.** With `batch_count > 1`, each batch element is a separate
 matrix. The **batch stride** is the offset in elements from one batch
