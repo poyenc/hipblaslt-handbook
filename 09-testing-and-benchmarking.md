@@ -275,22 +275,22 @@ gradient computation. Same shape as D: (M rows × N cols).
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--alpha` | 1 | Scalar alpha |
-| `--beta` | 0 | Scalar beta |
+| `--alpha` | 1 | Scalar multiplier for op(A)*op(B) in D = alpha*op(A)*op(B) + beta*C |
+| `--beta` | 0 | Scalar multiplier for C. 0 = C is not read. |
 
 **Data types:**
 
-| Flag | Short | Default | Options |
-|------|-------|---------|---------|
-| `--precision` | `-r` | f16_r | f32_r, f16_r, bf16_r, f64_r, i32_r, i8_r |
-| `--a_type` | | (from precision) | f32_r, f16_r, bf16_r, i8_r |
-| `--b_type` | | (from precision) | f32_r, f16_r, bf16_r, i8_r |
-| `--c_type` | | (from precision) | f32_r, f16_r, bf16_r, i8_r |
-| `--d_type` | | (from precision) | f32_r, f16_r, bf16_r, i8_r |
-| `--compute_type` | | f32_r | s, f32_r, x, xf32_r, f64_r, i32_r, f32_bf16_r |
-| `--compute_input_typeA` | | INVALID | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r |
-| `--compute_input_typeB` | | INVALID | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r |
-| `--scale_type` | | | f16_r, bf16_r |
+| Flag | Short | Default | Description | Options |
+|------|-------|---------|-------------|---------|
+| `--precision` | `-r` | f16_r | Set A/B/C/D types at once. Override per-matrix with `--a_type` etc. `_r` = real. | f32_r, f16_r, bf16_r, f64_r, i32_r, i8_r |
+| `--a_type` | | (precision) | Data type of matrix A (overrides `--precision`) | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r, i8_r |
+| `--b_type` | | (precision) | Data type of matrix B (overrides `--precision`) | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r, i8_r |
+| `--c_type` | | (precision) | Data type of matrix C (overrides `--precision`) | f32_r, f16_r, bf16_r, i8_r |
+| `--d_type` | | (precision) | Data type of matrix D (overrides `--precision`) | f32_r, f16_r, bf16_r, i8_r |
+| `--compute_type` | | f32_r | Accumulator precision inside MFMA. `s` = f32_r; `x` = xf32_r (truncated mantissa, faster MFMA); `f32_bf16_r` = FP32 accumulation with BF16 input down-conversion. | s, f32_r, x, xf32_r, f64_r, i32_r, f32_bf16_r |
+| `--compute_input_typeA` | | INVALID | Cast A to this type before MFMA. INVALID = use storage type. For mixed-precision FP8 workflows. | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r |
+| `--compute_input_typeB` | | INVALID | Cast B to this type before MFMA. INVALID = use storage type. | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r |
+| `--scale_type` | | | Data type of scalar scale factors (scaleA, scaleB, etc.) | f16_r, bf16_r |
 
 **Transpose and batching:**
 
@@ -305,25 +305,25 @@ gradient computation. Same shape as D: (M rows × N cols).
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--activation_type` | none | none, gelu, relu, swish, clamp |
-| `--activation_arg1` | 0 | First activation argument |
-| `--activation_arg2` | inf | Second activation argument |
-| `--bias_vector` | off | Apply bias vector |
-| `--bias_type` | (d_type) | f16_r, bf16_r, f32_r, default |
-| `--bias_source` | d | Bias source: a, b, d |
-| `--scaleA` | 0 | Scale mode for A buffer (0=None, 1=scalar, 2=vector, 3=B32E8, 4=B16E8, 5=B32E4M3, 6=B16E4M3, 7=B32E5M3, 8=B16E5M3, 1001=block_preswizzled_32x8) |
-| `--scaleB` | 0 | Scale mode for B buffer (same values as scaleA) |
-| `--scaleC` | 0 | Scale mode for C buffer (0=None, 1=scalar) |
-| `--scaleD` | 0 | Scale mode for D buffer (0=None, 1=scalar) |
-| `--scaleAlpha_vector` | off | Apply scaleAlpha vector |
-| `--amaxScaleA` | off | Scale A by abs max of A |
-| `--amaxScaleB` | off | Scale B by abs max of B |
-| `--amaxD` | off | Output Amax of intermediate D matrix |
-| `--use_e` | off | Apply AUX output / gradient input |
-| `--aux_type` | (d_type) | Precision of AUX output (matrix E) |
-| `--gradient` | off | Enable gradient |
-| `--swizzleA` | off | Enable tensor swizzling for A |
-| `--swizzleB` | off | Enable tensor swizzling for B |
+| `--activation_type` | none | Fused activation function: none, gelu, relu, swish, clamp |
+| `--activation_arg1` | 0 | Activation parameter 1. For clamp: lower bound. |
+| `--activation_arg2` | inf | Activation parameter 2. For clamp: upper bound. |
+| `--bias_vector` | off | Add a 1-D bias vector to each column of D. See `--bias_type` and `--bias_source`. |
+| `--bias_type` | (d_type) | Data type of the bias vector. `default` = match `--d_type`. Requires `--bias_vector`. Options: f16_r, bf16_r, f32_r, default |
+| `--bias_source` | d | Bias vector dimension. d = M rows (forward); a = M (gradient w.r.t. A); b = N (gradient w.r.t. B). Requires `--bias_vector`. |
+| `--scaleA` | 0 | Scale mode for A. 0=None, 1=scalar (one per tensor), 2=vector (one per row). MX block-scale: 3=B32E8 (block of 32 elements, E8M0 shared exponent), 4=B16E8, 5=B32E4M3, 6=B16E4M3, 7=B32E5M3, 8=B16E5M3. 1001=preswizzled 32×8 blocks. |
+| `--scaleB` | 0 | Scale mode for B (same values as `--scaleA`) |
+| `--scaleC` | 0 | Scale mode for C (0=None, 1=scalar) |
+| `--scaleD` | 0 | Scale mode for D (0=None, 1=scalar) |
+| `--scaleAlpha_vector` | off | Per-column alpha vector (length N) instead of scalar `--alpha`. Forces alpha to 1.0. |
+| `--amaxScaleA` | off | Compute amax(A) and use it to scale A (for FP8 dynamic quantization) |
+| `--amaxScaleB` | off | Compute amax(B) and use it to scale B (for FP8 dynamic quantization) |
+| `--amaxD` | off | Compute and output the absolute maximum of D (for FP8 output scaling) |
+| `--use_e` | off | Enable matrix E. Forward: stores pre-activation output. With `--gradient`: reads saved activations as input. |
+| `--aux_type` | (d_type) | Data type of matrix E. Requires `--use_e`. |
+| `--gradient` | off | Switch epilogue to backward-pass mode (activations become derivatives). Combine with `--use_e`. |
+| `--swizzleA` | off | Reorder A into a tiled memory layout for better hardware access patterns |
+| `--swizzleB` | off | Reorder B into a tiled memory layout for better hardware access patterns |
 
 **Benchmark control:**
 
@@ -333,42 +333,42 @@ gradient computation. Same shape as D: (M rows × N cols).
 | `--verify` | `-v` | off | Validate GPU results with CPU |
 | `--iters` | `-i` | 10 | Iterations inside timing loop |
 | `--cold_iters` | `-j` | 2 | Cold iterations before timing |
-| `--initialization` | | hpl | rand_int, trig_float, hpl, special, zero, norm_dist, uniform_01, integer_exact, fp16_accumulator_probe |
-| `--rotating` | | 0 | Rotating memory blocks per iteration (MB) |
-| `--flush` | | off | Flush instruction cache |
-| `--use_gpu_timer` | | false | Use hipEventElapsedTime for profiling |
+| `--initialization` | | hpl | How to fill input matrices. hpl = random in [-0.5, 0.5) (HPL benchmark pattern); rand_int = small integers; trig_float = sin/cos; zero = all zeros; norm_dist = normal distribution; uniform_01 = uniform [0,1); special = NaN/Inf/denorm edge cases; integer_exact = exact integers for reproducibility; fp16_accumulator_probe = FP16 accumulator stress test |
+| `--rotating` | | 0 | Rotate matrix buffers each iteration to defeat L2 cache (size in MB). 0 = off. Use 256-512 for realistic bandwidth measurements. |
+| `--flush` | | off | Flush GPU instruction cache between iterations to measure cold-cache kernel dispatch |
+| `--use_gpu_timer` | | false | Measure kernel time via GPU events (hipEventElapsedTime) instead of host wall clock. GPU timer excludes launch overhead and is more stable. |
 
 **Algorithm selection:**
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--algo_method` | heuristic | heuristic, all, index |
-| `--solution_index` | -1 | Solution index (with `--algo_method index`) |
-| `--requested_solution` | 1 | Number of solutions from heuristic (-1 = all) |
+| `--algo_method` | heuristic | heuristic = library picks best kernel; all = benchmark every available solution; index = run a specific solution (set `--solution_index`) |
+| `--solution_index` | -1 | Run a specific solution by index. Requires `--algo_method index`. Use `--algo_method all --print_kernel_info` to discover valid indices. -1 = none. |
+| `--requested_solution` | 1 | How many solutions the heuristic returns (each benchmarked separately). -1 = all. With `--algo_method heuristic` only. |
 
 **Tuning parameters:**
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--splitk` | 0 | Split-K value (0 = solution default; GEMM + mix/cpp API only) |
-| `--wgm` | 0 | Workgroup mapping (0 = solution default; GEMM + mix/cpp API only) |
+| `--splitk` | 0 | Split K dimension across workgroups for better utilization on small-M/N problems (0 = solution default). Requires `--api_method` cpp or mix. See [Ch10 glossary](10-troubleshooting-and-reference.md#4-glossary-essentials). |
+| `--wgm` | 0 | Override workgroup-to-tile mapping strategy (0 = solution default). Affects cache locality. Requires `--api_method` cpp or mix. See [Ch10 glossary](10-troubleshooting-and-reference.md#4-glossary-essentials). |
 
 **API and output:**
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--api_method` | c | c, mix, cpp |
-| `--grouped_gemm` | off | Use grouped GEMM |
-| `--use_user_args` | off | UserArguments in device memory (grouped GEMM) |
-| `--c_equal_d` | off | C and D share the same memory |
-| `--workspace` | 128 MB | Workspace size in bytes (default 128 * 1024 * 1024) |
+| `--api_method` | c | Which hipBLASLt API to use. c = C API (`hipblasLtMatmul`, re-solves each call); cpp = C++ ext API (`hipblaslt_ext::Gemm`, caches kernel selection); mix = C setup + ext dispatch |
+| `--grouped_gemm` | off | Launch multiple GEMMs with different sizes in one kernel. See [Ch5 Grouped GEMM](05-api-guide.md#grouped-gemm-essentials). |
+| `--use_user_args` | off | Pack grouped GEMM arguments into a device-side buffer to reduce launch overhead. Requires `--grouped_gemm`. |
+| `--c_equal_d` | off | C and D share the same device allocation (in-place update). C is overwritten. |
+| `--workspace` | 128 MB | GPU scratch memory budget in bytes. Larger values allow more solutions. See [Ch5 Workspace](05-api-guide.md#workspace-management-deep-dive). |
 | `--device` | 0 | GPU device index |
-| `--HMM` | off | Use HIP managed memory |
-| `--log_function_name` | off | Prepend function name to output |
-| `--function_filter` | | strstr filter on function name |
-| `--print_kernel_info` | off | Print solution name, kernel name, and index |
-| `--dump_matrix` | off | Dump input/output matrices to file |
-| `--skip_slow_solution_ratio` | 0 | Skip slow solutions during warmup (0-1 ratio) |
+| `--HMM` | off | Use HIP managed memory (HMM) where the runtime handles host/device data migration |
+| `--log_function_name` | off | Prepend the BLASLt function name to each output row |
+| `--function_filter` | | Only run functions whose name contains this substring |
+| `--print_kernel_info` | off | Print solution name, kernel name, and index for each result |
+| `--dump_matrix` | off | Dump input/output matrices to file for debugging |
+| `--skip_slow_solution_ratio` | 0 | With `--algo_method all`: skip solutions whose warmup exceeds (1+ratio) × fastest. 0 = disabled. |
 | `--version` | | Print version number and exit |
 | `--data` | | Read test parameters from a `.data` file |
 | `--yaml` | | Read test parameters from a YAML file |
