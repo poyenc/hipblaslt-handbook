@@ -233,10 +233,16 @@ base              base + stride       base + 2*stride
 Default strides: `stride = ld × number_of_columns` (= total elements per
 matrix). For example, with transA=N: `stride_a = lda × K`.
 
+In both batching modes, all batch elements must have the **same shape**
+(M, N, K) and the same leading dimensions. Only the data differs.
+
 **Strided Batched** (batch_mode=0, default): all batch elements live in
 one contiguous allocation, spaced by the stride.
 **General Batched** (batch_mode=1): each batch element can be a separate
 allocation; the API receives a device array of pointers.
+
+If you need **different sizes per problem**, use Grouped GEMM
+(`hipblaslt_ext::GroupedGemm`) instead — see [Chapter 5](05-api-guide.md#grouped-gemm-essentials).
 
 **Matrix E** is the auxiliary (AUX) matrix used with certain epilogues.
 In the forward pass (`--use_e` without `--gradient`), E stores

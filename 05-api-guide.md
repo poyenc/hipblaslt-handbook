@@ -157,7 +157,10 @@ See samples `09_hipblaslt_gemm_amax/` and `10_hipblaslt_gemm_amax_with_scale/`.
 
 ## Grouped GEMM `[Essentials]`
 
-Grouped GEMM batches multiple independent GEMM problems of potentially different sizes into a single kernel launch. This is useful for:
+Grouped GEMM batches multiple independent GEMM problems into a single kernel
+launch. Unlike batched GEMM (where all batch elements share the same M, N, K,
+and leading dimensions), each problem in a group can have **different sizes**.
+This is useful for:
 
 - Transformer models with variable sequence lengths
 - Multi-head attention with different head sizes
