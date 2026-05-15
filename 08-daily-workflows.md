@@ -348,6 +348,14 @@ the script `clients/tests/hipblaslt_gentest.py` expands these YAML definitions
 into the binary file `build/release/clients/hipblaslt_gtest.data`, which the
 `hipblaslt-test` binary reads at runtime.
 
+Note: `hipblaslt-test` exercises the **heuristic path** — the library picks
+whichever solution it considers best, so a specific new kernel may not be
+selected. To validate a specific solution, use `hipblaslt-bench` with
+`--algo_method index --solution_index <N> -v` (see
+[Section 2, Step 4](#2-i-need-to-add-a-kernel-solution)). Use gtests for
+regression testing across the library, and `hipblaslt-bench -v` for
+targeted kernel validation.
+
 ### YAML files in `clients/tests/data/`
 
 | File | Purpose |
