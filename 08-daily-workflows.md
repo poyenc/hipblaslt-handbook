@@ -161,8 +161,9 @@ solutions for a given problem size and generates exact-match logic YAML files.
 1. **Edit the template.** Copy and modify `utilities/template.yaml`:
 
    ```yaml
+   # Two steps: comment out Bench or CreateLogic to disable either.
    Bench:
-   ProblemType:
+     ProblemType:
        ComputeDataType: s
        ComputeInputDataType: s
        DataTypeA: s
@@ -172,14 +173,15 @@ solutions for a given problem size and generates exact-match logic YAML files.
        TransposeA: 0
        TransposeB: 0
        UseBias: False
-   TestConfig:
+     TestConfig:
        ColdIter: 20
        Iter: 100
        AlgoMethod: "all"
        RotatingBuffer: 512
-   TuningParameters: {}
-   ProblemSizes:
-   - [128, 128, 1, 128]   # [M, N, batch_count, K]
+     TuningParameters:
+       # SplitK: [0, 4, 8]
+     ProblemSizes:
+     - [128, 128, 1, 128]   # [M, N, batch_count, K]
    CreateLogic: {}
    ```
 
