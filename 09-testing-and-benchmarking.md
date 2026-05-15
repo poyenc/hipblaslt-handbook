@@ -294,6 +294,8 @@ cd build/clients
 | `--dump_matrix` | off | Dump input/output matrices to file |
 | `--skip_slow_solution_ratio` | 0 | Skip slow solutions during warmup (0-1 ratio) |
 | `--version` | | Print version number and exit |
+| `--data` | | Read test parameters from a `.data` file |
+| `--yaml` | | Read test parameters from a YAML file |
 
 ### Output columns
 
@@ -526,7 +528,7 @@ Key fields:
 | `category` | smoke, quick, pre_checkin, or nightly |
 | `function` | `matmul:` followed by a precision anchor or explicit type dict |
 | `matrix_size` | List of `{M, N, K}` dicts (or use an anchor like `*smoke_matrix_size_range`) |
-| `transA_transB` | Transpose combinations (usually `*transA_transB_range`) |
+| `transA_transB` | Transpose combinations (usually `*transA_transB_range`, defined locally in each test YAML file, not in the shared common files) |
 | `alpha` / `beta` | Scalar values or lists to expand |
 | `gpu_arch` | Regex matching GPU architecture strings (optional) |
 | `unit_check` | 1 = exact comparison, 0 = skip |
