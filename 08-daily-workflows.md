@@ -165,7 +165,7 @@ solutions for a given problem size and generates exact-match logic YAML files.
        RotatingBuffer: 512
    TuningParameters: {}
    ProblemSizes:
-   - [128, 128, 128]
+   - [128, 128, 1, 128]   # [M, N, batch_count, K]
    CreateLogic: {}
    ```
 
@@ -323,7 +323,7 @@ HIPBLASLT_BENCH_PERF=1 ./hipblaslt-bench -m 4096 -n 4096 -k 4096 --precision bf1
 
 Test cases are defined in YAML files under `clients/tests/data/`. At build time,
 the script `clients/tests/hipblaslt_gentest.py` expands these YAML definitions
-into the binary file `build/clients/hipblaslt_gtest.data`, which the
+into the binary file `build/release/clients/hipblaslt_gtest.data`, which the
 `hipblaslt-test` binary reads at runtime.
 
 ### YAML files in `clients/tests/data/`
@@ -535,9 +535,9 @@ When adding or changing a public API function, follow this abbreviated checklist
    - C++ extensions: `hipblaslt-ext.hpp`
    - ExtOp API: `hipblaslt-ext-op.h`
 
-2. **Implementation.** Add the implementation in `library/src/`:
+2. **Implementation.** Add the implementation in `library/src/amd_detail/`:
    - Top-level dispatch: `hipblaslt.cpp`, `hipblaslt-ext.cpp`, or
-     `hipblaslt-ext-op.cpp`
+     `hipblaslt-ext-op.cpp` (under `library/src/amd_detail/`)
    - AMD backend: `library/src/amd_detail/rocblaslt/` -- the rocblaslt layer
      handles matmul dispatch and algorithm selection
 
