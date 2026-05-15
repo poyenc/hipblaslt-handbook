@@ -287,7 +287,7 @@ gradient computation. Same shape as D: (M rows × N cols).
 | `--b_type` | | (precision) | Data type of matrix B (overrides `--precision`) | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r, i8_r |
 | `--c_type` | | (precision) | Data type of matrix C (overrides `--precision`) | f32_r, f16_r, bf16_r, i8_r |
 | `--d_type` | | (precision) | Data type of matrix D (overrides `--precision`) | f32_r, f16_r, bf16_r, i8_r |
-| `--compute_type` | | f32_r | Accumulator precision inside MFMA. `s` = f32_r; `x` = xf32_r (truncated mantissa, faster MFMA); `f32_bf16_r` = FP32 accumulation with BF16 input down-conversion. | s, f32_r, x, xf32_r, f64_r, i32_r, f32_bf16_r |
+| `--compute_type` | | f32_r | Accumulator precision for the Matrix Fused Multiply-Add (MFMA) hardware instructions. `s` = f32_r; `x` = xf32_r (inputs truncated to ~10 mantissa bits for higher throughput); `f32_bf16_r` = FP32 accumulation with BF16 input down-conversion. | s, f32_r, x, xf32_r, f64_r, i32_r, f32_bf16_r |
 | `--compute_input_typeA` | | INVALID | Cast A to this type before MFMA. INVALID = use storage type. For mixed-precision FP8 workflows. | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r |
 | `--compute_input_typeB` | | INVALID | Cast B to this type before MFMA. INVALID = use storage type. | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r |
 | `--scale_type` | | | Data type of scalar scale factors (scaleA, scaleB, etc.) | f16_r, bf16_r |
@@ -311,7 +311,7 @@ gradient computation. Same shape as D: (M rows × N cols).
 | `--bias_vector` | off | Add a 1-D bias vector to each column of D. See `--bias_type` and `--bias_source`. |
 | `--bias_type` | (d_type) | Data type of the bias vector. `default` = match `--d_type`. Requires `--bias_vector`. Options: f16_r, bf16_r, f32_r, default |
 | `--bias_source` | d | Bias vector dimension. d = M rows (forward); a = M (gradient w.r.t. A); b = N (gradient w.r.t. B). Requires `--bias_vector`. |
-| `--scaleA` | 0 | Scale mode for A. 0=None, 1=scalar (one per tensor), 2=vector (one per row). MX block-scale: 3=B32E8 (block of 32 elements, E8M0 shared exponent), 4=B16E8, 5=B32E4M3, 6=B16E4M3, 7=B32E5M3, 8=B16E5M3. 1001=preswizzled 32×8 blocks. |
+| `--scaleA` | 0 | Scale mode for A. 0=None, 1=scalar (one per tensor), 2=vector (one per row). MX (Microscaling) block-scale formats share a single scale exponent per block: 3=B32E8 (32-element block, E8M0 = 8-bit exponent-only scale), 4=B16E8, 5=B32E4M3, 6=B16E4M3, 7=B32E5M3, 8=B16E5M3. 1001=scale data pre-arranged into hardware 32×8 tile layout. Requires FP8/FP6/FP4 input types. |
 | `--scaleB` | 0 | Scale mode for B (same values as `--scaleA`) |
 | `--scaleC` | 0 | Scale mode for C (0=None, 1=scalar) |
 | `--scaleD` | 0 | Scale mode for D (0=None, 1=scalar) |
@@ -322,8 +322,8 @@ gradient computation. Same shape as D: (M rows × N cols).
 | `--use_e` | off | Enable matrix E. Forward: stores pre-activation output. With `--gradient`: reads saved activations as input. |
 | `--aux_type` | (d_type) | Data type of matrix E. Requires `--use_e`. |
 | `--gradient` | off | Switch epilogue to backward-pass mode (activations become derivatives). Combine with `--use_e`. |
-| `--swizzleA` | off | Reorder A into a tiled memory layout for better hardware access patterns |
-| `--swizzleB` | off | Reorder B into a tiled memory layout for better hardware access patterns |
+| `--swizzleA` | off | Reorder A into a tiled layout matching MFMA access patterns, avoiding runtime gather. Only supported for transA=T, transB=N with FP16, BF16, FP8 (FNUZ), or FP4 types. |
+| `--swizzleB` | off | Reorder B into a tiled layout matching MFMA access patterns. Same type/transpose constraints as `--swizzleA`. |
 
 **Benchmark control:**
 
@@ -331,11 +331,11 @@ gradient computation. Same shape as D: (M rows × N cols).
 |------|-------|---------|-------------|
 | `--function` | `-f` | matmul | BLASLt function to test |
 | `--verify` | `-v` | off | Validate GPU results with CPU |
-| `--iters` | `-i` | 10 | Iterations inside timing loop |
-| `--cold_iters` | `-j` | 2 | Cold iterations before timing |
-| `--initialization` | | hpl | How to fill input matrices. hpl = random in [-0.5, 0.5) (HPL benchmark pattern); rand_int = small integers; trig_float = sin/cos; zero = all zeros; norm_dist = normal distribution; uniform_01 = uniform [0,1); special = NaN/Inf/denorm edge cases; integer_exact = exact integers for reproducibility; fp16_accumulator_probe = FP16 accumulator stress test |
-| `--rotating` | | 0 | Rotate matrix buffers each iteration to defeat L2 cache (size in MB). 0 = off. Use 256-512 for realistic bandwidth measurements. |
-| `--flush` | | off | Flush GPU instruction cache between iterations to measure cold-cache kernel dispatch |
+| `--iters` | `-i` | 10 | Number of timed iterations (the "hot loop"). Reported `us` is the average across all iterations. |
+| `--cold_iters` | `-j` | 2 | Untimed warm-up iterations before the timing loop. Warms GPU clocks, caches, and HIP runtime. Results are discarded. |
+| `--initialization` | | hpl | How to fill input matrices. hpl = random in [-0.5, 0.5) following the High Performance Linpack (HPL) convention, well-conditioned and avoids overflow; rand_int = small integers; trig_float = sin/cos; zero = all zeros; norm_dist = normal distribution; uniform_01 = uniform [0,1); special = NaN/Inf/denorm edge cases; integer_exact = exact integers for reproducibility; fp16_accumulator_probe = adversarial values that stress FP16 accumulation precision (diagnostic) |
+| `--rotating` | | 0 | Allocate multiple copies of all matrix buffers and cycle through them each iteration, defeating L2 cache. Value is total memory budget in MB; the tool divides it by the per-iteration data footprint to determine the copy count. 0 = off. Use 256-512 for problems that fit in L2. |
+| `--flush` | | off | Flush GPU instruction cache (`s_icache_inv`) between timed iterations so each kernel dispatch starts cold. Flush overhead is measured separately and subtracted from the reported time. |
 | `--use_gpu_timer` | | false | Measure kernel time via GPU events (hipEventElapsedTime) instead of host wall clock. GPU timer excludes launch overhead and is more stable. |
 
 **Algorithm selection:**
@@ -357,18 +357,18 @@ gradient computation. Same shape as D: (M rows × N cols).
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--api_method` | c | Which hipBLASLt API to use. c = C API (`hipblasLtMatmul`, re-solves each call); cpp = C++ ext API (`hipblaslt_ext::Gemm`, caches kernel selection); mix = C setup + ext dispatch |
+| `--api_method` | c | Which hipBLASLt API to use. c = C API (`hipblasLtMatmul`): full setup + dispatch each call, no caching. cpp = C++ ext API (`hipblaslt_ext::Gemm`): caches kernel selection after initialize(), minimal dispatch overhead. mix = C API for setup, ext API for cached dispatch. |
 | `--grouped_gemm` | off | Launch multiple GEMMs with different sizes in one kernel. See [Ch5 Grouped GEMM](05-api-guide.md#grouped-gemm-essentials). |
 | `--use_user_args` | off | Pack grouped GEMM arguments into a device-side buffer to reduce launch overhead. Requires `--grouped_gemm`. |
 | `--c_equal_d` | off | C and D share the same device allocation (in-place update). C is overwritten. |
-| `--workspace` | 128 MB | GPU scratch memory budget in bytes. Larger values allow more solutions. See [Ch5 Workspace](05-api-guide.md#workspace-management-deep-dive). |
+| `--workspace` | 128 MB | Max GPU device memory (bytes) for internal use by kernel algorithms (e.g., split-K partial-sum buffers). The heuristic excludes solutions that need more than this budget. Default 128 MB. See [Ch5 Workspace](05-api-guide.md#workspace-management-deep-dive). |
 | `--device` | 0 | GPU device index |
 | `--HMM` | off | Use HIP managed memory (HMM) where the runtime handles host/device data migration |
 | `--log_function_name` | off | Prepend the BLASLt function name to each output row |
 | `--function_filter` | | Only run functions whose name contains this substring |
 | `--print_kernel_info` | off | Print solution name, kernel name, and index for each result |
 | `--dump_matrix` | off | Dump input/output matrices to file for debugging |
-| `--skip_slow_solution_ratio` | 0 | With `--algo_method all`: skip solutions whose warmup exceeds (1+ratio) × fastest. 0 = disabled. |
+| `--skip_slow_solution_ratio` | 0 | With `--algo_method all`: skip solutions whose cold-iteration time × ratio exceeds the best seen so far. Range 0-1: 0 = disabled; 0.5 = skip if >2× slower; 1.0 = skip anything slower than current best. |
 | `--version` | | Print version number and exit |
 | `--data` | | Read test parameters from a `.data` file |
 | `--yaml` | | Read test parameters from a YAML file |
@@ -408,6 +408,10 @@ to values suitable for solution sweeping:
 | `--rotating` | 0 | 512 |
 | `--flush` | off | on |
 | `--workspace` | 128 MB | from `HIPBLASLT_TUNING_USER_MAX_WORKSPACE` |
+
+These defaults prioritize measurement accuracy over speed: high iteration
+counts stabilize GPU clocks, buffer rotation prevents L2 cache bias, and
+I-cache flushing ensures fair comparison between solutions.
 
 ### Common benchmarking patterns
 
