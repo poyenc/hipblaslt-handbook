@@ -82,7 +82,7 @@ inputs.setAlpha(&alpha);
 inputs.setBeta(&beta);
 ```
 
-The `GemmEpilogue` object controls what happens after the matrix multiply -- bias addition, activation functions (GELU, ReLU), etc. Here it uses the default: no extra operations. We will add epilogue operations in the exercises below.
+The `GemmEpilogue` object controls what happens after the matrix multiply -- bias addition, activation functions (GELU, ReLU), etc. These operations are fused into the GEMM kernel itself, not launched as separate kernels. Here it uses the default: no extra operations. We will add epilogue operations in the exercises below.
 
 The `GemmInputs` object binds device pointers for each matrix and the scalar values alpha and beta. Note that `d_a`, `d_b`, `d_c`, `d_d` are device pointers (GPU memory) allocated by the `Runner` helper via `hipMalloc()` (see `helper.h` for the full memory setup), while `alpha` and `beta` are host-side `float` values passed by pointer.
 

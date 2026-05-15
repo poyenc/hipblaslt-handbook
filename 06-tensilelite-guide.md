@@ -443,7 +443,11 @@ The auto-generated path is modular:
   component handles one aspect of the kernel:
   - `MAC_F16.py`, `MAC_F32.py`, etc. -- multiply-accumulate for each data type
   - `LocalRead.py` -- reading tiles from LDS
-  - `GlobalWriteBatch.py` -- writing results to global memory
+  - `GlobalWriteBatch.py` -- writing results to global memory, including
+    fused epilogue (bias, activation, scaling) applied in-register
+    before the store. In some multi-kernel configurations the epilogue
+    is instead handled by a separate HIP conversion kernel
+    (`KernelWriterConversion.py`).
   - `GSU.py` -- global split-U reduction
   - `StreamK.py` -- stream-K work partitioning
   - `PersistentLoop.py` -- persistent kernel loops
