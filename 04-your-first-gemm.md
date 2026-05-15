@@ -137,7 +137,7 @@ Note: In the actual sample code, `GemmPreference` is created on line 100, before
 
 `algoGetHeuristic()` returns up to `request_solutions` algorithms, sorted by estimated performance (fastest first). Each result contains an `algo` field (the algorithm handle) and a `workspaceSize` field (how much workspace that algorithm needs).
 
-**Why:** Different problem sizes and data types favor different kernels. The heuristic searches through available precompiled solutions (from TensileLite logic files) and returns the best match. Always check that the result is non-empty -- some exotic configurations may not have a matching kernel.
+**Why:** Different problem sizes and data types favor different kernels. The heuristic searches through available precompiled solutions (from TensileLite logic files) and returns the best match. In the hipBLASLt API, each solution is called an **algorithm** -- the two terms refer to the same thing. Always check that the result is non-empty -- some exotic configurations may not have a matching kernel.
 
 ### Step 6: Initialize and Execute the GEMM
 
