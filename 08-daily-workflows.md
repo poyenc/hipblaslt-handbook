@@ -221,7 +221,10 @@ real model workload.
    ```
 
    Key options:
-   - `--requested_solution 128` -- search space size (use `-1` for all solutions)
+   - `--requested_solution 128` -- how many candidate solutions the
+     heuristic returns for each GEMM shape. The script benchmarks all of
+     them and picks the fastest. Higher values explore more solutions but
+     take longer. Use `-1` to try every available solution.
    - `--gpu_id 0` -- target GPU
    - `--stablize_gpu` -- lock GPU frequency for consistent results
 
