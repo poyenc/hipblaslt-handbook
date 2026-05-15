@@ -174,6 +174,65 @@ cd build/clients
     --compute_type f32_r
 ```
 
+### Matrix memory layout
+
+All matrices are **column-major**: columns are contiguous in memory.
+
+Example: a 4×3 matrix (M=4, N=3) with `ld = 4`:
+
+```
+Logical view:              Memory layout (column-major, ld=4):
+
+  col0  col1  col2         addr:  0  1  2  3 | 4  5  6  7 | 8  9 10 11
+┌─────┬─────┬─────┐              ├──col 0──┤ ├──col 1──┤ ├──col 2──┤
+│ a00 │ a01 │ a02 │  row 0       a00 a10 a20 a30 a01 a11 a21 a31 a02 a12 a22 a32
+│ a10 │ a11 │ a12 │  row 1
+│ a20 │ a21 │ a22 │  row 2       Element (row, col) is at offset: row + col * ld
+│ a30 │ a31 │ a32 │  row 3
+└─────┴─────┴─────┘
+```
+
+The **leading dimension** (ld) is the distance in elements between the
+start of two consecutive columns. It must be ≥ the number of rows. When
+`ld > rows`, the extra elements are padding (useful for alignment).
+
+**How transpose affects storage.** The GEMM computes `D = α·op(A)·op(B) + β·C`
+where `op(X) = X` (transA/B=N) or `op(X) = Xᵀ` (transA/B=T). The matrix
+is always stored in its **original** orientation — the transpose is applied
+logically during the computation, not by rearranging memory:
+
+| Matrix | transA/B=N | transA/B=T |
+|--------|------------|------------|
+| A | Stored as (M rows × K cols), `lda = M` | Stored as (K rows × M cols), `lda = K` |
+| B | Stored as (K rows × N cols), `ldb = K` | Stored as (N rows × K cols), `ldb = N` |
+| C, D, E | Always (M rows × N cols), `ld = M` | Same |
+
+**Batching.** With `batch_count > 1`, each batch element is a separate
+matrix. The **batch stride** is the offset in elements from one batch
+element to the next:
+
+```
+batch 0             batch 1             batch 2
+├── ld × cols ──┤   ├── ld × cols ──┤
+[  matrix data  ]   [  matrix data  ]   [  matrix data  ]
+^                   ^                   ^
+base              base + stride       base + 2*stride
+```
+
+Default strides: `stride = ld × number_of_columns` (= total elements per
+matrix). For example, with transA=N: `stride_a = lda × K`.
+
+**Strided Batched** (batch_mode=0, default): all batch elements live in
+one contiguous allocation, spaced by the stride.
+**General Batched** (batch_mode=1): each batch element can be a separate
+allocation; the API receives a device array of pointers.
+
+**Matrix E** is the auxiliary (AUX) matrix used with certain epilogues.
+In the forward pass (`--use_e` without `--gradient`), E stores
+pre-activation values (e.g., pre-GELU output). In the backward pass
+(`--use_e --gradient`), E is an input providing saved activations for
+gradient computation. Same shape as D: (M rows × N cols).
+
 ### Full CLI reference
 
 **Matrix dimensions:**
@@ -183,17 +242,17 @@ cd build/clients
 | `--sizem` | `-m` | 128 | Number of rows in C/D (and rows of op(A)) |
 | `--sizen` | `-n` | 128 | Number of columns in C/D (and columns of op(B)) |
 | `--sizek` | `-k` | 128 | Number of columns of op(A) and rows of op(B) |
-| `--lda` | | auto | Leading dimension of A |
-| `--ldb` | | auto | Leading dimension of B |
-| `--ldc` | | auto | Leading dimension of C |
-| `--ldd` | | auto | Leading dimension of D |
-| `--lde` | | auto | Leading dimension of E |
-| `--any_stride` | | off | Do not modify input strides based on leading dimensions |
-| `--stride_a` | | auto | Stride of strided-batched matrix A |
-| `--stride_b` | | auto | Stride of strided-batched matrix B |
-| `--stride_c` | | auto | Stride of strided-batched matrix C |
-| `--stride_d` | | auto | Stride of strided-batched matrix D |
-| `--stride_e` | | auto | Stride of strided-batched matrix E |
+| `--lda` | | auto | Leading dimension of A (default: M if transA=N, K if transA=T) |
+| `--ldb` | | auto | Leading dimension of B (default: K if transB=N, N if transB=T) |
+| `--ldc` | | auto | Leading dimension of C (default: M) |
+| `--ldd` | | auto | Leading dimension of D (default: M) |
+| `--lde` | | auto | Leading dimension of E / AUX matrix (default: M) |
+| `--any_stride` | | off | Pass user-specified strides through without clamping to the minimum (ld × columns). Without this flag, strides smaller than the minimum are silently raised. |
+| `--stride_a` | | auto | Batch stride for A in elements (default: lda × K if transA=N, lda × M if transA=T) |
+| `--stride_b` | | auto | Batch stride for B in elements (default: ldb × N if transB=N, ldb × K if transB=T) |
+| `--stride_c` | | auto | Batch stride for C in elements (default: ldc × N) |
+| `--stride_d` | | auto | Batch stride for D in elements (default: ldd × N) |
+| `--stride_e` | | auto | Batch stride for E in elements (default: lde × N) |
 
 **Scalar parameters:**
 
