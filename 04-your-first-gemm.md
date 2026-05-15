@@ -150,6 +150,8 @@ CHECK_HIPBLASLT_ERROR(gemm.initialize(heuristicResult[0].algo, d_workspace));
 CHECK_HIPBLASLT_ERROR(gemm.run(stream));
 ```
 
+`setMaxWorkspaceBytes()` appears twice -- on `GemmPreference` (Step 5) it limits which algorithms the heuristic returns; on `Gemm` (here) it tells the kernel how much workspace it can actually use during execution. Typically the same value.
+
 `initialize()` takes the chosen algorithm and a device workspace pointer. It prepares all kernel arguments. You must call this again if you change the algorithm or workspace pointer.
 
 `run()` enqueues the kernel on the given HIP stream. It is asynchronous -- the function returns immediately and the GPU executes in the background.
