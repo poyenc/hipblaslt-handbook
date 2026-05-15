@@ -113,7 +113,17 @@ Add a broadcast bias vector to the GEMM result:
 // HIPBLASLT_EPILOGUE_CLAMP_BIAS_EXT — bias then Clamp
 ```
 
-Set the bias pointer via `HIPBLASLT_MATMUL_DESC_BIAS_POINTER` and its data type via `HIPBLASLT_MATMUL_DESC_BIAS_DATA_TYPE`.
+Set the bias pointer and data type. With the C++ extension API:
+
+```cpp
+epilogue.setMode(HIPBLASLT_EPILOGUE_BIAS);
+epilogue.setBiasDataType(HIP_R_16F);
+inputs.setBias(d_bias);   // device pointer to bias vector of length m
+```
+
+With the C API, use `HIPBLASLT_MATMUL_DESC_BIAS_POINTER` and
+`HIPBLASLT_MATMUL_DESC_BIAS_DATA_TYPE` attributes on the matmul descriptor.
+See sample `04_hipblaslt_gemm_bias_ext/` for the full pattern.
 
 ### Auxiliary output
 
