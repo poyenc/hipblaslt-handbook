@@ -160,8 +160,11 @@ hipblaslt_ext::GroupedGemm groupedGemm(handle,
     hipblasOperation_t::HIPBLAS_OP_N, hipblasOperation_t::HIPBLAS_OP_N,
     HIP_R_16F, HIP_R_16F, HIP_R_16F, HIP_R_16F, HIPBLAS_COMPUTE_32F);
 
-// Set up problems (pseudo-code — see sample 16 for the real pattern)
 // Each problem has its own M, N, K, and data pointers
+std::vector<int64_t>                    m_vec, n_vec, k_vec, batch_vec;
+std::vector<hipblaslt_ext::GemmEpilogue> epilogues;
+std::vector<hipblaslt_ext::GemmInputs>   inputs;
+// ... populate vectors (see sample 16 for the full pattern)
 groupedGemm.setProblem(m_vec, n_vec, k_vec, batch_vec, epilogues, inputs);
 
 // Get algorithms and execute
