@@ -129,6 +129,12 @@ logic YAML files that control which solutions are selected at runtime.
    dispatched. Use `--algo_method index --solution_index` to bypass the
    heuristic and test a specific solution directly.
 
+   Solution names are auto-generated from tuning parameters (tile size, MI,
+   ISA, etc.) by `Naming.py` — you don't set them. To find your solution,
+   use `--algo_method all --print_kernel_info` to list all candidates and
+   match by tile/MI combination (e.g., `MT256x256x64_MI16x16x1`), or use
+   the `SolutionIndex` from your logic file entry.
+
 5. **Run the test suite** to check for regressions:
 
    ```bash
