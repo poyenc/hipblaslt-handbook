@@ -100,7 +100,7 @@ hipblasLtMatmulDescSetAttribute(matmulDesc, HIPBLASLT_MATMUL_DESC_EPILOGUE,
 
 ### Bias
 
-Add a broadcast bias vector to the GEMM result:
+Add a row-wise broadcast bias vector (length M, one element per row) to the GEMM result:
 
 ```cpp
 // D = alpha * A * B + beta * C + bias
