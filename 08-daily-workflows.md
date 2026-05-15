@@ -476,7 +476,7 @@ When debugging, isolate whether a failure is solution-specific:
 
 # Run with a specific solution index
 ./hipblaslt-bench -m 4096 -n 4096 -k 4096 --precision f16_r \
-  --algo_method index --solution_index 0 -v
+  --algo_method index --solution_index <index> -v
 ```
 
 ### CPU validation
