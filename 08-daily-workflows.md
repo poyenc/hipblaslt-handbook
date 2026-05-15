@@ -529,6 +529,12 @@ HIPBLASLT_TUNING_OVERRIDE_FILE=debug_tuning.txt ./your_application
 
 For debugging Stream-K related issues:
 
+| Value | Effect |
+|-------|--------|
+| 0 | Data-parallel only — no Stream-K (default) |
+| 1 | Enable Stream-K in the master library lookup |
+| 2 | Enable Stream-K in exact-match logic libraries too |
+
 ```bash
 # Disable Stream-K (use standard data-parallel kernels)
 TENSILE_SOLUTION_SELECTION_METHOD=0 ./hipblaslt-bench -m 4096 -n 4096 -k 4096 \
