@@ -19,6 +19,7 @@ this handbook.  Later sections reference them by name.
 | Logic File | A YAML file mapping a Problem type to its Solutions. Contains the problem descriptor, solution definitions, and a size-to-solution mapping table. Organized by GPU architecture. |
 | Code Object | A compiled `.co` (ELF) file containing one or more GPU kernels for a specific ISA target (e.g., `gfx950`). |
 | Library | A tree of selection nodes built from logic files at build time. At runtime, the tree narrows from hardware to problem type to strategy to individual solution. |
+| Workspace | A temporary GPU memory buffer the application allocates for use by the kernel during execution. Some solutions require workspace for intermediate results (e.g., split-K partial sums). The required size varies per solution and must be queried before dispatch. |
 
 ### How the concepts relate
 
@@ -67,7 +68,7 @@ App            hipblaslt.cpp     rocblaslt_mat.cpp    tensile_host.cpp     GPU
  │                  │                  │                    │───────────────>│
 ```
 
-**Public API (`hipblaslt.cpp`).** `hipblasLtMatmul()` casts every
+**Public API (`hipblaslt.cpp`).** `hipblaslt` is the public API name (matching cuBLASLt portability). `rocblaslt` is the internal AMD implementation. Public `hipblasLt*` functions delegate to `rocblaslt_*`. `hipblasLtMatmul()` casts every
 `hipblasLt*` handle and descriptor to its `rocblaslt_*` counterpart and
 calls `rocblaslt_matmul()`.  No computation happens here -- the function is
 a thin translation layer between the public types and the internal types.
@@ -103,7 +104,7 @@ hipBLASLt has two backends for kernel dispatch.
 |---------------|--------------------------|--------------------------|
 | Kernels       | Precompiled `.co` files  | JIT-compiled at runtime  |
 | Default usage | All standard GEMM        | Block-scaled GEMM        |
-| Selection     | Logic file lookup        | Origami analytical cost model   |
+| Selection     | Logic file lookup        | Origami analytical cost model (shared with TensileLite)   |
 | First-call    | Loads code object on use | JIT compiles kernel      |
 | Caching       | Loaded once, reused      | Cached after first JIT   |
 

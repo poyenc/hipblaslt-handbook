@@ -135,7 +135,7 @@ The corresponding bit mask values (for `HIPBLASLT_LOG_MASK`) from `rocblaslt-typ
 
 `HIPBLASLT_LOG_MASK` allows selective enabling of specific categories. For example, `HIPBLASLT_LOG_MASK=33` enables Error (1) + Bench (32).
 
-If both `HIPBLASLT_LOG_LEVEL` and `HIPBLASLT_LOG_MASK` are set, `HIPBLASLT_LOG_LEVEL` takes precedence (the code checks it first).
+If both `HIPBLASLT_LOG_LEVEL` and `HIPBLASLT_LOG_MASK` are set, `HIPBLASLT_LOG_LEVEL` takes precedence (the code checks it first). Use `HIPBLASLT_LOG_LEVEL` for cumulative verbosity (each level adds more output). Use `HIPBLASLT_LOG_MASK` when you need non-adjacent categories — for example, `HIPBLASLT_LOG_MASK=33` enables Error (1) + Bench (32) without the Trace/Hints/Info categories in between.
 
 **Example: Capture trace logs to a file:**
 
@@ -206,7 +206,7 @@ The marker integration (controlled by `HIPBLASLT_ENABLE_MARKER`) annotates ROCPr
 | **ExtOp** | Extension operations beyond GEMM: layernorm, softmax, amax. Implemented as precompiled device kernels in `device-library/extops/`. |
 | **Split-K** | A parallelization strategy that splits the K (reduction) dimension across multiple workgroups. Each workgroup computes a partial result; a final reduction step combines them. Trades extra workspace memory for better GPU utilization on problems with large K and small M/N. |
 | **Workgroup mapping** | The scheme that assigns output tiles to GPU workgroups. Affects cache locality and occupancy. Common strategies include row-major, column-major, and space-filling curve mappings. |
-| **Stream-K** | A work-distribution strategy where workgroups process a continuous stream of output tiles rather than a fixed assignment. Improves load balancing for irregular problem shapes. Controlled via `TENSILE_SOLUTION_SELECTION_METHOD` and related env vars. On MI350, Stream-K is always enabled. |
+| **Stream-K** | A work-distribution strategy where workgroups pull tiles from a shared queue rather than receiving a fixed (data-parallel) assignment. In the default data-parallel mode, each workgroup is statically assigned a set of output tiles — if the work doesn't divide evenly, some workgroups finish early while others are still busy. Stream-K improves load balancing for irregular problem shapes by letting idle workgroups pick up remaining work. Controlled via `TENSILE_SOLUTION_SELECTION_METHOD` and related env vars. On MI350, Stream-K is always enabled. |
 
 ---
 

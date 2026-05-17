@@ -64,9 +64,9 @@ hipBLASLt supports a wide range of data types for mixed-precision GEMM:
 | `HIPBLAS_COMPUTE_32F` | 32-bit single precision compute |
 | `HIPBLAS_COMPUTE_32I` | 32-bit integer compute |
 | `HIPBLAS_COMPUTE_64F` | 64-bit double precision compute |
-| `HIPBLAS_COMPUTE_32F_FAST_16F` | Tensor Cores with FP16 down-conversion |
-| `HIPBLAS_COMPUTE_32F_FAST_16BF` | Tensor Cores with BF16 down-conversion |
-| `HIPBLAS_COMPUTE_32F_FAST_TF32` | Tensor Cores with TF32 compute |
+| `HIPBLAS_COMPUTE_32F_FAST_16F` | Matrix cores (MFMA units) with FP16 down-conversion (named for cuBLASLt compatibility; on AMD GPUs, this targets the MFMA hardware units) |
+| `HIPBLAS_COMPUTE_32F_FAST_16BF` | Matrix cores (MFMA units) with BF16 down-conversion |
+| `HIPBLAS_COMPUTE_32F_FAST_TF32` | Matrix cores (MFMA units) with TF32 compute |
 
 A/B/C/D types can be mixed — for example, FP16 inputs with FP32 output. See the [data type support reference](https://rocm.docs.amd.com/projects/hipBLASLt/en/latest/reference/data-type-support.html) for all valid combinations.
 

@@ -12,13 +12,13 @@ where `A`, `B`, and `C` are matrices and `alpha` and `beta` are scalar values th
 
 Matrix multiplication is one of the most computationally important operations in modern computing. Training a single layer of a neural network boils down to multiplying weight matrices by activation matrices -- often thousands of times per second. Scientific simulations, signal processing, and recommendation systems all rely on the same fundamental operation.
 
-GPUs are well-suited for GEMM because matrix multiplication is inherently parallel: every element of the output matrix can be computed independently. A modern AMD GPU has thousands of compute units that can perform these multiplications simultaneously, achieving throughput orders of magnitude higher than a CPU. Specialized matrix hardware (such as AMD's MFMA -- Matrix Fused Multiply-Add -- units) accelerates this further by computing small matrix tiles in a single instruction.
+GPUs are well-suited for GEMM because matrix multiplication is inherently parallel: every element of the output matrix can be computed independently. A modern AMD GPU has hundreds of compute units, each containing multiple SIMD lanes, that can perform these multiplications simultaneously, achieving throughput orders of magnitude higher than a CPU. Specialized matrix hardware (such as AMD's MFMA -- Matrix Fused Multiply-Accumulate -- units) accelerates this further by computing small matrix tiles in a single instruction.
 
 A **BLAS** (Basic Linear Algebra Subprograms) library provides standardized, optimized implementations of operations like GEMM. Rather than writing GPU kernels from scratch, application developers call into a BLAS library and get hardware-tuned performance automatically.
 
 ## What hipBLASLt does `[Essentials]`
 
-hipBLASLt is AMD's extended GEMM library. Unlike standard BLAS GEMM (which overwrites C in place), hipBLASLt writes the result to a separate output matrix D and adds fused post-processing:
+hipBLASLt is AMD's extended GEMM library. Unlike standard BLAS GEMM (which overwrites C in place), hipBLASLt writes the result to a separate output matrix D. This allows D to have a different type than C and preserves C for reuse across iterations. hipBLASLt also adds fused post-processing:
 
 ```
 D = Activation(alpha * op(A) * op(B) + beta * C + bias)
@@ -30,7 +30,7 @@ Here is what each term means:
 - **C** -- Accumulation matrix. Scaled by `beta` and added to the product before post-processing. Unlike A and B, C is not transposed — it uses its own layout descriptor directly.
 - **D** -- Output matrix. The final result after all operations.
 - **alpha, beta** -- Scalar values that scale the matrix product and the accumulation matrix, respectively.
-- **op()** -- An in-place transformation applied to A or B, such as transpose or non-transpose.
+- **op()** -- Controls how A or B is read: as-is (N) or transposed (T).
 - **bias** -- A vector added to the result before activation (forward pass). It is broadcast across all columns of D, so its length must match the number of rows in D.
 - **Activation** -- A pointwise function applied element-by-element to the result.
 
@@ -61,13 +61,13 @@ The primary entry point is the `hipblasLtMatmul` API. You describe the operation
 
 - **Matrix scaling modes** -- Per-tensor, per-row-vector, and block-scaled scaling of input matrices. Relevant for FP8 and MX (Microscaling) data formats, where MX is a block-scaled numeric format that groups elements and shares a common scale factor per block.
 
-- **Matrix layout swizzling** -- Reorder matrix data into tiled memory layouts (such as `HIPBLASLT_ORDER_COL16_4R32`) for improved memory access patterns on specific hardware.
+- **Matrix layout swizzling** -- Reorder matrix data into tiled memory layouts for improved memory access patterns on specific hardware. The layout names encode the tiling scheme: e.g. `HIPBLASLT_ORDER_COL16_4R32` = columns of 16 elements, grouped into 4 rows of 32 bytes — matching MFMA register tile shapes.
 
 - **Auxiliary output** -- Save the pre-activation GEMM result to a separate buffer while also writing the post-activation result to D. Used for training workflows that need both values.
 
 - **Alpha vector** -- Per-row scaling of the matrix product using a device-side vector instead of a single scalar.
 
-- **ExtOp (Extended Operation) kernels** -- Standalone fused kernels for common operations outside of GEMM: layernorm, softmax, and amax reduction.
+- **ExtOp (Extended Operation) kernels** -- Standalone GPU kernels for common operations outside of GEMM: layernorm, softmax, and amax reduction. These ops frequently appear adjacent to GEMM in transformer models.
 
 - **Matrix transform** -- A helper operation (`hipblasLtMatrixTransform`) for converting between matrix memory layouts and scaling values.
 
@@ -80,7 +80,7 @@ hipBLASLt is one of several BLAS-level libraries in the ROCm ecosystem. Here is 
 **When to choose hipBLASLt over rocBLAS:**
 
 - You need fused bias, activation, or quantization in the GEMM kernel
-- You are working with FP8, BF6, F6, F4, or MX-format data types
+- You are working with FP8, BF6 (E3M2: 6-bit, 3 exp + 2 mantissa), F6 (E2M3: 6-bit, 2 exp + 3 mantissa), F4 (E2M1: 4-bit, 2 exp + 1 mantissa), or MX-format data types. These are OCP MX standard formats used as input storage types — computation accumulates in FP32.
 - You want to tune algorithm selection or use grouped GEMM
 - Your workload is deep learning training or inference
 
@@ -103,7 +103,7 @@ hipBLASLt supports the following AMD GPU architectures, as defined in `cmake/ten
 | `gfx908` | AMD Instinct MI100 | CDNA 1 |
 | `gfx90a` | AMD Instinct MI200 series (MI210, MI250, MI250X) | CDNA 2 |
 | `gfx942` | AMD Instinct MI300 series (MI300A, MI300X) | CDNA 3. Supports FP8 FNUZ (Finite, NaN, Unsigned Zero — an AMD-specific FP8 encoding). |
-| `gfx950` | AMD Instinct MI350 series | CDNA 4. Supports FP8 OCP (Open Compute Project — the industry-standard FP8 encoding), BF6/F6, F4, MX formats. |
+| `gfx950` | AMD Instinct MI350 series | CDNA 4. Supports FP8 OCP (Open Compute Project — the industry-standard FP8 encoding), BF6/F6, F4, MX formats. FNUZ and OCP are incompatible 8-bit float encodings. Models trained with FNUZ on MI300 (gfx942) need conversion for OCP on MI350 (gfx950+). You cannot mix them. |
 | `gfx1100` | AMD Radeon RX 7900 series | RDNA 3 |
 | `gfx1101` | AMD Radeon RX 7700/7800 series | RDNA 3 |
 | `gfx1102` | AMD Radeon RX 7600 series | RDNA 3. Valid for `GPU_TARGETS` but not included in the default "all" build — must be explicitly specified. |

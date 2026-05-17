@@ -287,7 +287,7 @@ gradient computation. Same shape as D: (M rows × N cols).
 | `--b_type` | | (precision) | Data type of matrix B (overrides `--precision`) | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r, i8_r |
 | `--c_type` | | (precision) | Data type of matrix C (overrides `--precision`) | f32_r, f16_r, bf16_r, i8_r |
 | `--d_type` | | (precision) | Data type of matrix D (overrides `--precision`) | f32_r, f16_r, bf16_r, i8_r |
-| `--compute_type` | | f32_r | Accumulator precision for the Matrix Fused Multiply-Add (MFMA) hardware instructions. `s` = f32_r; `x` = xf32_r (inputs truncated to ~10 mantissa bits for higher throughput); `f32_bf16_r` = FP32 accumulation with BF16 input down-conversion. | s, f32_r, x, xf32_r, f64_r, i32_r, f32_bf16_r |
+| `--compute_type` | | f32_r | Accumulator precision for the Matrix Fused Multiply-Accumulate (MFMA) hardware instructions. `s` = f32_r; `x` = xf32_r (XF32 is AMD's name for TF32-like compute — inputs truncated to ~10 mantissa bits for higher throughput); `f32_bf16_r` = FP32 accumulation with BF16 input down-conversion. | s, f32_r, x, xf32_r, f64_r, i32_r, f32_bf16_r |
 | `--compute_input_typeA` | | INVALID | Cast A to this type before MFMA. INVALID = use storage type. For mixed-precision FP8 workflows. | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r |
 | `--compute_input_typeB` | | INVALID | Cast B to this type before MFMA. INVALID = use storage type. | f32_r, f16_r, bf16_r, f8_r, bf8_r, f8_fnuz_r, bf8_fnuz_r |
 | `--scale_type` | | | Data type of scalar scale factors (scaleA, scaleB, etc.) | f16_r, bf16_r |
@@ -315,7 +315,7 @@ gradient computation. Same shape as D: (M rows × N cols).
 | `--scaleB` | 0 | Scale mode for B (same values as `--scaleA`) |
 | `--scaleC` | 0 | Scale mode for C (0=None, 1=scalar) |
 | `--scaleD` | 0 | Scale mode for D (0=None, 1=scalar) |
-| `--scaleAlpha_vector` | off | Per-column alpha vector (length N) instead of scalar `--alpha`. Forces alpha to 1.0. |
+| `--scaleAlpha_vector` | off | Per-row alpha vector (length M) instead of scalar `--alpha`. Forces alpha to 1.0. |
 | `--amaxScaleA` | off | Compute amax(A) and use it to scale A (for FP8 dynamic quantization) |
 | `--amaxScaleB` | off | Compute amax(B) and use it to scale B (for FP8 dynamic quantization) |
 | `--amaxD` | off | Compute and output the absolute maximum of D (for FP8 output scaling) |

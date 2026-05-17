@@ -5,7 +5,7 @@
 > For terminology used in this chapter (Problem, Solution, Logic File, etc.), see [Chapter 3: Core Concepts](03-architecture.md#1-core-concepts-essentials).
 
 TensileLite is the kernel generation and selection engine inside hipBLASLt. It
-produces optimized assembly GEMM kernels for AMD GPUs and packages them as
+produces optimized assembly GEMM kernels for AMD GPUs using MFMA (Matrix Fused Multiply-Accumulate, see [Chapter 1](01-what-is-hipblaslt.md)) instructions and packages them as
 loadable code objects (`.co` files). At runtime the host library selects the
 best kernel for a given problem and dispatches it.
 
@@ -360,8 +360,8 @@ parameters.  Key fields:
 | `VectorWidth` | `2` | Output vector width |
 | `CustomKernelName` | `''` | Empty = auto-generated kernel |
 | `LdsNumElements` | `12288` | LDS usage in elements |
-| `WorkGroupMapping` | `8` | Work-group mapping strategy |
-| `SourceSwap` | `true` | Swap A/B sources |
+| `WorkGroupMapping` | `8` | Work-group mapping strategy: positive values map N workgroups in the M-tile direction before advancing in N (row-major tiling with group size N); negative values do the reverse (column-major tiling); 0 = no remapping |
+| `SourceSwap` | `true` | Swap which matrix is loaded through LDS vs directly to VGPRs (when true, B goes to LDS instead of A) |
 | `DirectToLds` | `0` | Direct global-to-LDS transfer |
 | `DirectToVgprA` / `DirectToVgprB` | `false` | Direct-to-VGPR bypassing LDS |
 
@@ -433,9 +433,11 @@ reads a hand-written `.s` file from `CustomKernels/` -- the caller
 is non-empty), the entire code generation engine is skipped; for
 auto-generated kernels, it uses `rocisa` to build an in-memory IR tree of
 GPU ISA instructions (CDNA and RDNA). Currently 119 custom kernels exist
-(gfx942 and gfx950 only), covering ~0.06% of shipped solutions --
+(94 target gfx942, 12 target gfx950, 13 have no architecture suffix), covering a small fraction of shipped solutions --
 mainly FP8 GroupedGemm and GSU variants where hand-tuned assembly
 outperforms the generator.
+
+VGPR/SGPR register budgets and LDS usage per kernel are computed in `KernelWriterAssembly.py`. Larger tiles increase register pressure at the cost of occupancy (fewer waves per CU). Prefetch depth also adds VGPR cost. See the source for details; a full treatment of register pressure tradeoffs is deferred to a follow-up with kernel developer review.
 
 The auto-generated path is modular:
 
@@ -477,6 +479,8 @@ memory latency -- happens *during* IR construction, not as a separate
 pass (except for stinkytofu). The `ScheduleIterAlg` solution parameter
 (SIA) selects the strategy. The default is SIA=3.
 
+GPU memory operations have high latency (hundreds of cycles). Instruction scheduling interleaves memory operations with compute (MFMA) instructions so the GPU stays busy while waiting for data, hiding that latency. The SIA parameter controls how aggressively this interleaving is done.
+
 | SIA | Strategy | What it does |
 |-----|----------|--------------|
 | 0 | Sequential | No scheduling. Global reads, local reads, local writes, MACs emitted in fixed order. |
@@ -510,7 +514,7 @@ and the `_StinkyTofuOptLevel` flag triggers stinkytofu after
 `rocIsaPass`.
 
 **In practice:** SIA is tuned per-solution and stored in the shipped
-logic YAML files. SIA=3 is used by ~99% of shipped solutions across
+logic YAML files. SIA=3 is used by the vast majority of shipped solutions across
 all architectures. SIA=1 appears as a minority for specific cases
 (e.g., DGEMM, RDNA). SIA=4 (stinkytofu) is not yet shipped in any
 production logic file -- it currently only has a backend for gfx1250

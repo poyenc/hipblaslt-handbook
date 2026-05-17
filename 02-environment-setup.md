@@ -27,10 +27,12 @@ An AMD GPU supported by hipBLASLt. The supported architectures are defined in `c
 | Python | 3.8+ | Required for device library generation and test data |
 | C++ compiler | `amdclang++` | Ships with ROCm at `/opt/rocm/bin/amdclang++` |
 | C compiler | `amdclang` | Ships with ROCm at `/opt/rocm/bin/amdclang` |
-| Fortran compiler | `gfortran` | Client builds only |
-| LAPACK + BLAS | `liblapack-dev`, `libblas-dev` | Client builds only |
+| Fortran compiler | `gfortran` | Client builds only (see below) |
+| LAPACK + BLAS | `liblapack-dev`, `libblas-dev` | Client builds only (see below) |
 | msgpack-cxx | `libmsgpack-dev` | Serialization library for TensileLite |
 | Google Test + Mock | `libgtest-dev`, `libgmock-dev` | Client builds only (test framework) |
+
+A "client build" includes the test suite (`hipblaslt-test`) and benchmark tool (`hipblaslt-bench`). Enable with `--clients` (invoke) or `-DHIPBLASLT_ENABLE_CLIENT=ON` (CMake).
 
 Install all non-ROCm dependencies at once (Ubuntu/Debian):
 
@@ -55,8 +57,8 @@ hipBLASLt lives at `projects/hipblaslt/` in the monorepo, but its build referenc
 
 | Monorepo path | Used by | Disable option |
 |---|---|---|
-| `shared/origami` | Host library (Stream-K) + rocisa | None — always required |
-| `shared/stinkytofu` | rocisa (assembly optimizer for TensileLite) | None — always required |
+| `shared/origami` | Host library (Stream-K) + rocisa — analytical cost model for kernel tile prediction | None — always required |
+| `shared/stinkytofu` | rocisa — assembly-level instruction optimizer | None — always required |
 | `shared/mxdatagenerator` | Client tests/benchmarks (MX format data) | `-DHIPBLASLT_ENABLE_MXDATAGENERATOR=OFF` |
 | `shared/rocroller` | Host library (JIT kernels) | `-DHIPBLASLT_ENABLE_ROCROLLER=OFF` |
 
@@ -124,6 +126,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+This is `projects/hipblaslt/requirements.txt`. `inv` is short for `invoke` (the Python task runner installed via `pip install invoke`). Both forms are interchangeable.
+
 The `requirements.txt` installs:
 
 ```
@@ -139,7 +143,7 @@ orjson
 yappi
 ```
 
-**2. Build:**
+**Build:**
 
 ```bash
 # Basic release build (library only, no test/bench binaries)

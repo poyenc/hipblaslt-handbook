@@ -1,5 +1,7 @@
 # Chapter 11 -- Reference Appendix
 
+> **Note:** Line numbers reference the codebase at time of writing and may drift. Use function names as the primary search target.
+
 This appendix collects source-level implementation detail for developers
 actively working in the hipBLASLt codebase. For conceptual understanding, see
 Chapters [3](03-architecture.md), [6](06-tensilelite-guide.md), and
@@ -9,7 +11,7 @@ Chapters [3](03-architecture.md), [6](06-tensilelite-guide.md), and
 
 ## 1. Host Library File Reference
 
-> For a conceptual overview, see [Chapter 3, Section 2](03-architecture.md#2-how-a-gemm-call-becomes-a-kernel-essentials) and [Chapter 7, Section 1](07-host-library-guide.md#1-what-the-host-library-does-essentials).
+> For a conceptual overview, see [Chapter 3, Section 2](03-architecture.md#2-how-a-gemm-call-becomes-a-kernel-essentials).
 
 ### Top-level files
 
@@ -40,7 +42,7 @@ The public header `rocblaslt.h` lives in `rocblaslt/include/`, while internal he
 
 ## 2. Request Lifecycle -- Detailed Call Chains
 
-> For a conceptual overview, see [Chapter 7, Section 2](07-host-library-guide.md#2-request-lifecycle-essentials).
+> For a conceptual overview, see [Chapter 3, Section 2](03-architecture.md#2-how-a-gemm-call-becomes-a-kernel-essentials).
 
 ### Layer 1: Public API entry (`library/src/amd_detail/hipblaslt.cpp`)
 
@@ -103,7 +105,7 @@ Key helper functions at this layer:
 
 ### Layer 4: Kernel launch
 
-TensileLite's `SolutionAdapter` calls `hipModuleLaunchKernel()` to submit the precompiled code object kernel. Lazy loading (see Section 7) may trigger `hipModuleLoadData()` at this point if the code object was not yet loaded.
+TensileLite's `SolutionAdapter` calls `hipExtModuleLaunchKernel()` to submit the precompiled code object kernel. Lazy loading (see Section 7) may trigger `hipModuleLoadData()` at this point if the code object was not yet loaded.
 
 ### The ext API path
 
@@ -128,7 +130,7 @@ The ext API separates problem setup (`initialize`) from execution (`run`), allow
 
 ## 3. Algorithm Selection Internals
 
-> For a conceptual overview, see [Chapter 7, Section 3](07-host-library-guide.md#3-algorithm-selection-essentials).
+> For a conceptual overview, see [Chapter 3, Section 4](03-architecture.md#4-how-solutions-are-selected-essentials).
 
 ### Entry points
 
@@ -291,6 +293,8 @@ The `ExperimentalStreamK` row type is skipped unless `Debug::Instance().useExper
 When lazy loading is enabled, `MasterSolutionLibrary::getSolutionByIndex(hardware, index)`
 calls `loadLibrary(index)` before looking up the solution. `loadLibrary()`:
 
+Note: the mapping file uses the `TensileLite` prefix while the main library file uses `Tensile` (without `Lite`) — this naming inconsistency exists in the build output.
+
 1. Uses `libraryMapping` (loaded from `TensileLiteLibrary_lazy_<arch>_Mapping.dat`)
    to map the solution index to a shard filename.
 2. Loads the shard file (e.g., `<prefix>.dat`) via `LoadLibraryFile()`.
@@ -417,7 +421,7 @@ device libraries are built.
 
 ## 7. Lazy Loading Internals
 
-> For a conceptual overview, see [Chapter 7, Section 4](07-host-library-guide.md#4-lazy-loading-essentials).
+> For a conceptual overview, see [Chapter 7, Section 4](07-host-library-guide.md#4-lazy-loading-essentials) (Senior path chapter).
 
 ### CMake configuration
 

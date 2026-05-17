@@ -103,6 +103,8 @@ Runner<hipblasLtHalf, hipblasLtHalf, hipblasLtHalf, float, float> runner(
     1024, 512, 1024, 1, 1.f, 1.f, 32 * 1024 * 1024);
 ```
 
+Template parameters: InTypeA, InTypeB, OutType, AlphaType, BetaType (and optionally BiasType, defaults to OutType).
+
 So: m=1024, n=512, k=1024, batch_count=1, alpha=1.0, beta=1.0, and 32 MB of workspace.
 
 The matrix layout for `HIPBLAS_OP_N` (no transpose) is column-major:

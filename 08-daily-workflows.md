@@ -531,9 +531,8 @@ For debugging Stream-K related issues:
 
 | Value | Effect |
 |-------|--------|
-| 0 | Data-parallel only — no Stream-K (default) |
-| 1 | Enable Stream-K in the master library lookup |
-| 2 | Enable Stream-K in exact-match logic libraries too |
+| 0 | Default (standard tuned libraries, no Stream-K) |
+| 2 | Origami with Stream-K |
 
 ```bash
 # Disable Stream-K (use standard data-parallel kernels)
